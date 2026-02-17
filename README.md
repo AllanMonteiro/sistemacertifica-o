@@ -138,3 +138,4 @@ Usuário ADMIN criado automaticamente no startup:
 - O bucket S3 `evidencias` é criado automaticamente no startup da API.
 - Tipos de evidência padrão são semeados automaticamente se a tabela estiver vazia.
 - A API agora aceita múltiplas origens CORS em `CORS_ORIGINS` (separadas por vírgula).
+# sistemacertifica-o
