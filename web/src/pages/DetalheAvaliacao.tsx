@@ -1,0 +1,375 @@
+﻿import { FormEvent, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+
+import {
+  api,
+  AvaliacaoDetalhe,
+  PRIORIDADE_LABELS,
+  Prioridade,
+  STATUS_ANDAMENTO_LABELS,
+  STATUS_CONFORMIDADE_LABELS,
+  StatusAndamento,
+  StatusConformidade,
+  TipoEvidencia,
+  Usuario,
+} from '../api';
+import Table from '../components/Table';
+
+const STATUS_CONFORMIDADE_LIST: StatusConformidade[] = [
+  'conforme',
+  'nc_menor',
+  'nc_maior',
+  'oportunidade_melhoria',
+  'nao_se_aplica',
+];
+
+const STATUS_DEMANDA_LIST: StatusAndamento[] = ['aberta', 'em_andamento', 'em_validacao', 'concluida', 'bloqueada'];
+const PRIORIDADE_LIST: Prioridade[] = ['baixa', 'media', 'alta', 'critica'];
+
+export default function DetalheAvaliacao() {
+  const { id } = useParams();
+  const avaliacaoId = Number(id);
+
+  const [detalhe, setDetalhe] = useState<AvaliacaoDetalhe | null>(null);
+  const [tipos, setTipos] = useState<TipoEvidencia[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+
+  const [statusConformidade, setStatusConformidade] = useState<StatusConformidade>('conforme');
+  const [observacoes, setObservacoes] = useState('');
+
+  const [tipoEvidenciaId, setTipoEvidenciaId] = useState<number | ''>('');
+  const [kind, setKind] = useState<'link' | 'texto'>('link');
+  const [urlOuTexto, setUrlOuTexto] = useState('');
+  const [obsEvidencia, setObsEvidencia] = useState('');
+  const [arquivo, setArquivo] = useState<File | null>(null);
+
+  const [demanda, setDemanda] = useState({
+    titulo: '',
+    descricao: '',
+    responsavel_id: '' as number | '',
+    start_date: '',
+    due_date: '',
+    status_andamento: 'aberta' as StatusAndamento,
+    prioridade: 'media' as Prioridade,
+  });
+
+  const [erro, setErro] = useState('');
+  const [mensagem, setMensagem] = useState('');
+
+  const carregar = async () => {
+    if (!avaliacaoId) return;
+    setErro('');
+    try {
+      const detalheResp = await api.get<AvaliacaoDetalhe>(`/avaliacoes/${avaliacaoId}/detalhe`);
+      setDetalhe(detalheResp.data);
+      setStatusConformidade(detalheResp.data.avaliacao.status_conformidade);
+      setObservacoes(detalheResp.data.avaliacao.observacoes || '');
+
+      const tiposResp = await api.get<TipoEvidencia[]>('/tipos-evidencia');
+      setTipos(tiposResp.data);
+      if (tiposResp.data[0]) {
+        setTipoEvidenciaId(tiposResp.data[0].id);
+      }
+
+      try {
+        const usuariosResp = await api.get<Usuario[]>('/usuarios');
+        setUsuarios(usuariosResp.data);
+        if (usuariosResp.data[0]) {
+          setDemanda((prev) => ({ ...prev, responsavel_id: prev.responsavel_id || usuariosResp.data[0].id }));
+        }
+      } catch {
+        setUsuarios([]);
+      }
+    } catch (err: any) {
+      setErro(err?.response?.data?.detail || 'Falha ao carregar detalhe da avaliação.');
+    }
+  };
+
+  useEffect(() => {
+    void carregar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avaliacaoId]);
+
+  const sucesso = (msg: string) => {
+    setMensagem(msg);
+    setTimeout(() => setMensagem(''), 2500);
+  };
+
+  const erroApi = (err: any) => {
+    setErro(err?.response?.data?.detail || 'Erro na operação.');
+  };
+
+  const atualizarAvaliacao = async (e: FormEvent) => {
+    e.preventDefault();
+    setErro('');
+    try {
+      await api.patch(`/avaliacoes/${avaliacaoId}`, {
+        status_conformidade: statusConformidade,
+        observacoes: observacoes || null,
+      });
+      await carregar();
+      sucesso('Avaliação atualizada.');
+    } catch (err) {
+      erroApi(err);
+    }
+  };
+
+  const criarEvidenciaTextoLink = async (e: FormEvent) => {
+    e.preventDefault();
+    setErro('');
+    try {
+      await api.post('/evidencias', {
+        avaliacao_id: avaliacaoId,
+        tipo_evidencia_id: tipoEvidenciaId || null,
+        kind,
+        url_or_path: urlOuTexto,
+        observacoes: obsEvidencia || null,
+      });
+      setUrlOuTexto('');
+      setObsEvidencia('');
+      await carregar();
+      sucesso('Evidência adicionada.');
+    } catch (err) {
+      erroApi(err);
+    }
+  };
+
+  const uploadArquivo = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!arquivo) {
+      setErro('Selecione um arquivo para upload.');
+      return;
+    }
+    setErro('');
+    try {
+      const formData = new FormData();
+      formData.append('avaliacao_id', String(avaliacaoId));
+      if (tipoEvidenciaId) {
+        formData.append('tipo_evidencia_id', String(tipoEvidenciaId));
+      }
+      if (obsEvidencia) {
+        formData.append('observacoes', obsEvidencia);
+      }
+      formData.append('file', arquivo);
+      await api.post('/evidencias/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setArquivo(null);
+      setObsEvidencia('');
+      await carregar();
+      sucesso('Upload de evidência concluído.');
+    } catch (err) {
+      erroApi(err);
+    }
+  };
+
+  const criarDemanda = async (e: FormEvent) => {
+    e.preventDefault();
+    setErro('');
+    try {
+      await api.post('/demandas', {
+        avaliacao_id: avaliacaoId,
+        titulo: demanda.titulo,
+        descricao: demanda.descricao || null,
+        responsavel_id: demanda.responsavel_id || null,
+        start_date: demanda.start_date || null,
+        due_date: demanda.due_date || null,
+        status_andamento: demanda.status_andamento,
+        prioridade: demanda.prioridade,
+      });
+      setDemanda((prev) => ({ ...prev, titulo: '', descricao: '', start_date: '', due_date: '' }));
+      await carregar();
+      sucesso('Demanda criada.');
+    } catch (err) {
+      erroApi(err);
+    }
+  };
+
+  if (!detalhe) {
+    return <div className="card">Carregando detalhe da avaliação...</div>;
+  }
+
+  return (
+    <div className="grid gap-16">
+      <h2>Detalhe da Avaliação</h2>
+
+      <div className="card">
+        <strong>
+          Trilha: {detalhe.principio.titulo} {'>'} {detalhe.criterio.titulo} {'>'} {detalhe.indicador.titulo}
+        </strong>
+      </div>
+
+      {erro && <div className="error">{erro}</div>}
+      {mensagem && <div className="success">{mensagem}</div>}
+
+      <div className="card">
+        <h3>Avaliação do Indicador</h3>
+        <form className="grid two-col gap-12" onSubmit={atualizarAvaliacao}>
+          <label className="form-row">
+            <span>Status de Conformidade</span>
+            <select
+              value={statusConformidade}
+              onChange={(e) => setStatusConformidade(e.target.value as StatusConformidade)}
+            >
+              {STATUS_CONFORMIDADE_LIST.map((status) => (
+                <option key={status} value={status}>
+                  {STATUS_CONFORMIDADE_LABELS[status]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="form-row">
+            <span>Justificativa/Observações</span>
+            <textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={4} />
+          </label>
+
+          <button type="submit">Salvar Avaliação</button>
+        </form>
+      </div>
+
+      <div className="card">
+        <h3>Evidências</h3>
+
+        <Table
+          rows={detalhe.evidencias}
+          columns={[
+            { title: 'Tipo', render: (e) => e.tipo_evidencia_id || '-' },
+            { title: 'Kind', render: (e) => e.kind },
+            { title: 'URL/Caminho/Texto', render: (e) => e.url_or_path },
+            { title: 'Observações', render: (e) => e.observacoes || '-' },
+          ]}
+        />
+
+        <form className="grid three-col gap-12" onSubmit={criarEvidenciaTextoLink}>
+          <select
+            value={tipoEvidenciaId}
+            onChange={(e) => setTipoEvidenciaId(e.target.value ? Number(e.target.value) : '')}
+          >
+            <option value="">Sem tipo</option>
+            {tipos.map((tipo) => (
+              <option key={tipo.id} value={tipo.id}>
+                {tipo.nome}
+              </option>
+            ))}
+          </select>
+
+          <select value={kind} onChange={(e) => setKind(e.target.value as 'link' | 'texto')}>
+            <option value="link">link</option>
+            <option value="texto">texto</option>
+          </select>
+
+          <input
+            placeholder={kind === 'link' ? 'URL da evidência' : 'Texto da evidência'}
+            value={urlOuTexto}
+            onChange={(e) => setUrlOuTexto(e.target.value)}
+            required
+          />
+
+          <input
+            placeholder="Observações"
+            value={obsEvidencia}
+            onChange={(e) => setObsEvidencia(e.target.value)}
+          />
+
+          <button type="submit">Adicionar Evidência (Link/Texto)</button>
+        </form>
+
+        <form className="grid two-col gap-12" onSubmit={uploadArquivo}>
+          <input type="file" onChange={(e) => setArquivo(e.target.files?.[0] || null)} required />
+          <button type="submit">Upload de Arquivo</button>
+        </form>
+      </div>
+
+      <div className="card">
+        <h3>Demandas</h3>
+        <Table
+          rows={detalhe.demandas}
+          columns={[
+            { title: 'Título', render: (d) => d.titulo },
+            { title: 'Responsável', render: (d) => d.responsavel_id || '-' },
+            { title: 'Data Início', render: (d) => d.start_date || '-' },
+            { title: 'Prazo', render: (d) => d.due_date || '-' },
+            { title: 'Andamento', render: (d) => STATUS_ANDAMENTO_LABELS[d.status_andamento] },
+            { title: 'Prioridade', render: (d) => PRIORIDADE_LABELS[d.prioridade] },
+          ]}
+        />
+
+        <form className="grid four-col gap-12" onSubmit={criarDemanda}>
+          <input
+            placeholder="Título"
+            value={demanda.titulo}
+            onChange={(e) => setDemanda((d) => ({ ...d, titulo: e.target.value }))}
+            required
+          />
+          <input
+            placeholder="Descrição"
+            value={demanda.descricao}
+            onChange={(e) => setDemanda((d) => ({ ...d, descricao: e.target.value }))}
+          />
+
+          <select
+            value={demanda.responsavel_id}
+            onChange={(e) => setDemanda((d) => ({ ...d, responsavel_id: e.target.value ? Number(e.target.value) : '' }))}
+          >
+            <option value="">Sem responsável</option>
+            {usuarios.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.nome} ({u.role})
+              </option>
+            ))}
+          </select>
+
+          <input
+            type="date"
+            value={demanda.start_date}
+            onChange={(e) => setDemanda((d) => ({ ...d, start_date: e.target.value }))}
+          />
+
+          <input
+            type="date"
+            value={demanda.due_date}
+            onChange={(e) => setDemanda((d) => ({ ...d, due_date: e.target.value }))}
+          />
+
+          <select
+            value={demanda.status_andamento}
+            onChange={(e) => setDemanda((d) => ({ ...d, status_andamento: e.target.value as StatusAndamento }))}
+          >
+            {STATUS_DEMANDA_LIST.map((status) => (
+              <option key={status} value={status}>
+                {STATUS_ANDAMENTO_LABELS[status]}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={demanda.prioridade}
+            onChange={(e) => setDemanda((d) => ({ ...d, prioridade: e.target.value as Prioridade }))}
+          >
+            {PRIORIDADE_LIST.map((p) => (
+              <option key={p} value={p}>
+                {PRIORIDADE_LABELS[p]}
+              </option>
+            ))}
+          </select>
+
+          <button type="submit">Criar Demanda</button>
+        </form>
+      </div>
+
+      <div className="card">
+        <h3>Log de Auditoria (recentes)</h3>
+        <Table
+          rows={detalhe.logs}
+          columns={[
+            { title: 'Data', render: (l) => new Date(l.created_at).toLocaleString('pt-BR') },
+            { title: 'Entidade', render: (l) => l.entidade },
+            { title: 'Ação', render: (l) => l.acao },
+            { title: 'Usuário ID', render: (l) => l.created_by || '-' },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}

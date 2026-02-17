@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Ambientes locais
+.env
+.venv/
+venv/
+
+# Frontend
+web/node_modules/
+web/dist/
+
+# Logs
+*.log
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
