@@ -8,6 +8,7 @@ import {
   STATUS_CONFORMIDADE_LABELS,
   StatusConformidade,
 } from '../api';
+import Modal from '../components/Modal';
 import Table from '../components/Table';
 
 type Props = {
@@ -35,6 +36,9 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
   const [novoIndicadorId, setNovoIndicadorId] = useState<number>(0);
   const [novoStatus, setNovoStatus] = useState<StatusConformidade>('conforme');
   const [novaObs, setNovaObs] = useState('');
+  const [avaliacaoEdicao, setAvaliacaoEdicao] = useState<Avaliacao | null>(null);
+  const [edicaoStatus, setEdicaoStatus] = useState<StatusConformidade>('conforme');
+  const [edicaoObs, setEdicaoObs] = useState('');
 
   const carregar = async () => {
     if (!auditoriaId || !programaId) return;
@@ -94,6 +98,36 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
       setMensagem('Avaliação criada com sucesso.');
     } catch (err: any) {
       setErro(err?.response?.data?.detail || 'Falha ao criar avaliação.');
+    }
+  };
+
+  const abrirEdicao = (avaliacao: Avaliacao) => {
+    setAvaliacaoEdicao(avaliacao);
+    setEdicaoStatus(avaliacao.status_conformidade);
+    setEdicaoObs(avaliacao.observacoes || '');
+  };
+
+  const fecharEdicao = () => {
+    setAvaliacaoEdicao(null);
+    setEdicaoStatus('conforme');
+    setEdicaoObs('');
+  };
+
+  const salvarEdicao = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!avaliacaoEdicao) return;
+    setErro('');
+    setMensagem('');
+    try {
+      await api.patch(`/avaliacoes/${avaliacaoEdicao.id}`, {
+        status_conformidade: edicaoStatus,
+        observacoes: edicaoObs || null,
+      });
+      await carregar();
+      fecharEdicao();
+      setMensagem('Avaliação atualizada com sucesso.');
+    } catch (err: any) {
+      setErro(err?.response?.data?.detail || 'Falha ao atualizar avaliação.');
     }
   };
 
@@ -176,14 +210,50 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
             {
               title: 'Ações',
               render: (a) => (
-                <button type="button" onClick={() => navigate(`/avaliacoes/${a.id}`)}>
-                  Detalhar
-                </button>
+                <div className="row-actions">
+                  <button type="button" onClick={() => abrirEdicao(a)}>
+                    Editar
+                  </button>
+                  <button type="button" onClick={() => navigate(`/avaliacoes/${a.id}`)}>
+                    Detalhar
+                  </button>
+                </div>
               ),
             },
           ]}
         />
       </div>
+
+      <Modal open={!!avaliacaoEdicao} title="Editar Avaliação" onClose={fecharEdicao}>
+        <form className="grid gap-12" onSubmit={salvarEdicao}>
+          <label className="form-row">
+            <span>Status de Conformidade</span>
+            <select value={edicaoStatus} onChange={(e) => setEdicaoStatus(e.target.value as StatusConformidade)}>
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {STATUS_CONFORMIDADE_LABELS[status]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="form-row">
+            <span>Justificativa/Observações</span>
+            <input
+              value={edicaoObs}
+              onChange={(e) => setEdicaoObs(e.target.value)}
+              placeholder="Informe justificativa ou observações"
+            />
+          </label>
+
+          <div className="row-actions">
+            <button type="button" onClick={fecharEdicao}>
+              Cancelar
+            </button>
+            <button type="submit">Salvar Alterações</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
