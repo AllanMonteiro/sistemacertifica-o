@@ -235,6 +235,16 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.btn-secondary {
+  background: #f3f7f1;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover {
+  background: #e6eee2;
+}
+
 .error {
   background: #fbe7e7;
   color: var(--danger);

@@ -9,7 +9,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.rbac import require_roles
-from app.core.security import get_current_user
+from app.core.security import get_current_user, hash_password
 from app.db.session import get_db
 from app.models.auditlog import AcaoAuditEnum, AuditLog
 from app.models.fsc import (
@@ -62,6 +62,7 @@ from app.schemas.fsc import (
     PrincipioCreate,
     PrincipioOut,
     PrincipioUpdate,
+    ResponsavelCreate,
 )
 from app.schemas.user import UserOut
 from app.services.audit_logger import registrar_log
@@ -1698,7 +1699,33 @@ def listar_logs(
 
 @router.get('/usuarios', response_model=list[UserOut])
 def listar_usuarios(
+    role: RoleEnum | None = Query(default=None),
     db: Session = Depends(get_db),
     _: User = Depends(require_roles(RoleEnum.ADMIN, RoleEnum.GESTOR, RoleEnum.AUDITOR)),
 ) -> list[UserOut]:
-    return list(db.scalars(select(User).order_by(User.nome)).all())
+    query = select(User).order_by(User.nome)
+    if role:
+        query = query.where(User.role == role)
+    return list(db.scalars(query).all())
+
+
+@router.post('/usuarios/responsaveis', response_model=UserOut, status_code=status.HTTP_201_CREATED)
+def criar_responsavel(
+    payload: ResponsavelCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(RoleEnum.ADMIN, RoleEnum.GESTOR)),
+) -> UserOut:
+    existente = db.scalar(select(User).where(func.lower(User.email) == payload.email.lower()))
+    if existente:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Já existe usuário com este email.')
+
+    responsavel = User(
+        nome=payload.nome.strip(),
+        email=payload.email.strip().lower(),
+        role=RoleEnum.RESPONSAVEL,
+        password_hash=hash_password(payload.senha),
+    )
+    db.add(responsavel)
+    db.commit()
+    db.refresh(responsavel)
+    return responsavel

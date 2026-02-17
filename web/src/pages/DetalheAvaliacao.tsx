@@ -13,6 +13,7 @@ import {
   TipoEvidencia,
   Usuario,
 } from '../api';
+import Modal from '../components/Modal';
 import Table from '../components/Table';
 
 const STATUS_CONFORMIDADE_LIST: StatusConformidade[] = [
@@ -57,6 +58,9 @@ export default function DetalheAvaliacao() {
   const [mensagem, setMensagem] = useState('');
   const tiposMap = new Map(tipos.map((tipo) => [tipo.id, tipo.nome]));
   const usuariosMap = new Map(usuarios.map((usuario) => [usuario.id, usuario]));
+  const [modalResponsavelOpen, setModalResponsavelOpen] = useState(false);
+  const [novoResponsavel, setNovoResponsavel] = useState({ nome: '', email: '', senha: '' });
+  const [criandoResponsavel, setCriandoResponsavel] = useState(false);
 
   const carregar = async () => {
     if (!avaliacaoId) return;
@@ -75,9 +79,10 @@ export default function DetalheAvaliacao() {
 
       try {
         const usuariosResp = await api.get<Usuario[]>('/usuarios');
-        setUsuarios(usuariosResp.data);
-        if (usuariosResp.data[0]) {
-          setDemanda((prev) => ({ ...prev, responsavel_id: prev.responsavel_id || usuariosResp.data[0].id }));
+        const responsaveis = usuariosResp.data.filter((u) => u.role === 'RESPONSAVEL');
+        setUsuarios(responsaveis);
+        if (responsaveis[0]) {
+          setDemanda((prev) => ({ ...prev, responsavel_id: prev.responsavel_id || responsaveis[0].id }));
         }
       } catch {
         setUsuarios([]);
@@ -184,6 +189,33 @@ export default function DetalheAvaliacao() {
       sucesso('Demanda criada.');
     } catch (err) {
       erroApi(err);
+    }
+  };
+
+  const cadastrarResponsavel = async (e: FormEvent) => {
+    e.preventDefault();
+    setErro('');
+    setMensagem('');
+    setCriandoResponsavel(true);
+    try {
+      const { data } = await api.post<Usuario>('/usuarios/responsaveis', {
+        nome: novoResponsavel.nome,
+        email: novoResponsavel.email,
+        senha: novoResponsavel.senha,
+      });
+      setUsuarios((prev) => {
+        const atualizados = [...prev, data];
+        atualizados.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+        return atualizados;
+      });
+      setDemanda((prev) => ({ ...prev, responsavel_id: data.id }));
+      setNovoResponsavel({ nome: '', email: '', senha: '' });
+      setModalResponsavelOpen(false);
+      setMensagem('Responsável cadastrado e vinculado à demanda.');
+    } catch (err) {
+      erroApi(err);
+    } finally {
+      setCriandoResponsavel(false);
     }
   };
 
@@ -366,6 +398,19 @@ export default function DetalheAvaliacao() {
                   </option>
                 ))}
               </select>
+              <div className="row-actions">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => {
+                    setErro('');
+                    setMensagem('');
+                    setModalResponsavelOpen(true);
+                  }}
+                >
+                  Cadastrar Responsável
+                </button>
+              </div>
             </label>
             <label className="form-row">
               <span>Data Início</span>
@@ -428,6 +473,49 @@ export default function DetalheAvaliacao() {
           ]}
         />
       </div>
+
+      <Modal open={modalResponsavelOpen} title="Cadastrar Responsável da Demanda" onClose={() => setModalResponsavelOpen(false)}>
+        <form className="grid gap-12" onSubmit={cadastrarResponsavel}>
+          <label className="form-row">
+            <span>Nome</span>
+            <input
+              value={novoResponsavel.nome}
+              onChange={(e) => setNovoResponsavel((prev) => ({ ...prev, nome: e.target.value }))}
+              placeholder="Nome do responsável"
+              required
+            />
+          </label>
+          <label className="form-row">
+            <span>Email</span>
+            <input
+              type="email"
+              value={novoResponsavel.email}
+              onChange={(e) => setNovoResponsavel((prev) => ({ ...prev, email: e.target.value }))}
+              placeholder="email@empresa.com"
+              required
+            />
+          </label>
+          <label className="form-row">
+            <span>Senha inicial</span>
+            <input
+              type="password"
+              value={novoResponsavel.senha}
+              onChange={(e) => setNovoResponsavel((prev) => ({ ...prev, senha: e.target.value }))}
+              placeholder="Mínimo 6 caracteres"
+              minLength={6}
+              required
+            />
+          </label>
+          <div className="row-actions">
+            <button type="button" className="btn-secondary" onClick={() => setModalResponsavelOpen(false)}>
+              Cancelar
+            </button>
+            <button type="submit" disabled={criandoResponsavel}>
+              {criandoResponsavel ? 'Cadastrando...' : 'Cadastrar'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

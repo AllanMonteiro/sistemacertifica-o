@@ -41,6 +41,12 @@ class MensagemOut(BaseModel):
     mensagem: str
 
 
+class ResponsavelCreate(BaseModel):
+    nome: str = Field(min_length=2, max_length=150)
+    email: str = Field(min_length=3, max_length=255)
+    senha: str = Field(min_length=6, max_length=128)
+
+
 class ConfiguracaoSistemaUpdate(BaseModel):
     nome_empresa: str | None = Field(default=None, min_length=2, max_length=255)
     logo_url: str | None = None
