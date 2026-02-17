@@ -55,6 +55,8 @@ export default function DetalheAvaliacao() {
 
   const [erro, setErro] = useState('');
   const [mensagem, setMensagem] = useState('');
+  const tiposMap = new Map(tipos.map((tipo) => [tipo.id, tipo.nome]));
+  const usuariosMap = new Map(usuarios.map((usuario) => [usuario.id, usuario]));
 
   const carregar = async () => {
     if (!avaliacaoId) return;
@@ -190,12 +192,13 @@ export default function DetalheAvaliacao() {
   }
 
   return (
-    <div className="grid gap-16">
+    <div className="grid gap-16 detalhe-avaliacao-page">
       <h2>Detalhe da Avaliação</h2>
 
-      <div className="card">
-        <strong>
-          Trilha: {detalhe.principio.titulo} {'>'} {detalhe.criterio.titulo} {'>'} {detalhe.indicador.titulo}
+      <div className="card detalhe-trilha-card">
+        <span className="detalhe-trilha-label">Trilha do Indicador</span>
+        <strong className="detalhe-trilha-path">
+          {detalhe.principio.titulo} {'>'} {detalhe.criterio.titulo} {'>'} {detalhe.indicador.titulo}
         </strong>
       </div>
 
@@ -204,27 +207,30 @@ export default function DetalheAvaliacao() {
 
       <div className="card">
         <h3>Avaliação do Indicador</h3>
-        <form className="grid two-col gap-12" onSubmit={atualizarAvaliacao}>
-          <label className="form-row">
-            <span>Status de Conformidade</span>
-            <select
-              value={statusConformidade}
-              onChange={(e) => setStatusConformidade(e.target.value as StatusConformidade)}
-            >
-              {STATUS_CONFORMIDADE_LIST.map((status) => (
-                <option key={status} value={status}>
-                  {STATUS_CONFORMIDADE_LABELS[status]}
-                </option>
-              ))}
-            </select>
-          </label>
+        <form className="detalhe-avaliacao-form" onSubmit={atualizarAvaliacao}>
+          <div className="grid two-col gap-12">
+            <label className="form-row">
+              <span>Status de Conformidade</span>
+              <select
+                value={statusConformidade}
+                onChange={(e) => setStatusConformidade(e.target.value as StatusConformidade)}
+              >
+                {STATUS_CONFORMIDADE_LIST.map((status) => (
+                  <option key={status} value={status}>
+                    {STATUS_CONFORMIDADE_LABELS[status]}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="form-row">
-            <span>Justificativa/Observações</span>
-            <textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={4} />
-          </label>
-
-          <button type="submit">Salvar Avaliação</button>
+            <label className="form-row">
+              <span>Justificativa/Observações</span>
+              <textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={4} />
+            </label>
+          </div>
+          <div className="detalhe-form-actions">
+            <button type="submit">Salvar Avaliação</button>
+          </div>
         </form>
       </div>
 
@@ -234,50 +240,75 @@ export default function DetalheAvaliacao() {
         <Table
           rows={detalhe.evidencias}
           columns={[
-            { title: 'Tipo', render: (e) => e.tipo_evidencia_id || '-' },
-            { title: 'Kind', render: (e) => e.kind },
+            {
+              title: 'Tipo',
+              render: (e) => (e.tipo_evidencia_id ? tiposMap.get(e.tipo_evidencia_id) || e.tipo_evidencia_id : '-'),
+            },
+            { title: 'Formato', render: (e) => e.kind },
             { title: 'URL/Caminho/Texto', render: (e) => e.url_or_path },
             { title: 'Observações', render: (e) => e.observacoes || '-' },
           ]}
         />
 
-        <form className="grid three-col gap-12" onSubmit={criarEvidenciaTextoLink}>
-          <select
-            value={tipoEvidenciaId}
-            onChange={(e) => setTipoEvidenciaId(e.target.value ? Number(e.target.value) : '')}
-          >
-            <option value="">Sem tipo</option>
-            {tipos.map((tipo) => (
-              <option key={tipo.id} value={tipo.id}>
-                {tipo.nome}
-              </option>
-            ))}
-          </select>
+        <form className="detalhe-evidencia-form" onSubmit={criarEvidenciaTextoLink}>
+          <div className="grid three-col gap-12">
+            <label className="form-row">
+              <span>Tipo de Evidência</span>
+              <select
+                value={tipoEvidenciaId}
+                onChange={(e) => setTipoEvidenciaId(e.target.value ? Number(e.target.value) : '')}
+              >
+                <option value="">Sem tipo</option>
+                {tipos.map((tipo) => (
+                  <option key={tipo.id} value={tipo.id}>
+                    {tipo.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <select value={kind} onChange={(e) => setKind(e.target.value as 'link' | 'texto')}>
-            <option value="link">link</option>
-            <option value="texto">texto</option>
-          </select>
+            <label className="form-row">
+              <span>Formato</span>
+              <select value={kind} onChange={(e) => setKind(e.target.value as 'link' | 'texto')}>
+                <option value="link">Link</option>
+                <option value="texto">Texto</option>
+              </select>
+            </label>
 
-          <input
-            placeholder={kind === 'link' ? 'URL da evidência' : 'Texto da evidência'}
-            value={urlOuTexto}
-            onChange={(e) => setUrlOuTexto(e.target.value)}
-            required
-          />
+            <label className="form-row">
+              <span>{kind === 'link' ? 'URL da Evidência' : 'Texto da Evidência'}</span>
+              <input
+                placeholder={kind === 'link' ? 'https://...' : 'Descreva a evidência textual'}
+                value={urlOuTexto}
+                onChange={(e) => setUrlOuTexto(e.target.value)}
+                required
+              />
+            </label>
+          </div>
 
-          <input
-            placeholder="Observações"
-            value={obsEvidencia}
-            onChange={(e) => setObsEvidencia(e.target.value)}
-          />
-
-          <button type="submit">Adicionar Evidência (Link/Texto)</button>
+          <div className="grid two-col gap-12">
+            <label className="form-row">
+              <span>Observações</span>
+              <input
+                placeholder="Informações adicionais"
+                value={obsEvidencia}
+                onChange={(e) => setObsEvidencia(e.target.value)}
+              />
+            </label>
+            <div className="detalhe-form-actions align-end">
+              <button type="submit">Adicionar Evidência (Link/Texto)</button>
+            </div>
+          </div>
         </form>
 
-        <form className="grid two-col gap-12" onSubmit={uploadArquivo}>
-          <input type="file" onChange={(e) => setArquivo(e.target.files?.[0] || null)} required />
-          <button type="submit">Upload de Arquivo</button>
+        <form className="detalhe-upload-form" onSubmit={uploadArquivo}>
+          <label className="form-row">
+            <span>Arquivo de Evidência</span>
+            <input type="file" onChange={(e) => setArquivo(e.target.files?.[0] || null)} required />
+          </label>
+          <div className="detalhe-form-actions align-end">
+            <button type="submit">Upload de Arquivo</button>
+          </div>
         </form>
       </div>
 
@@ -287,7 +318,10 @@ export default function DetalheAvaliacao() {
           rows={detalhe.demandas}
           columns={[
             { title: 'Título', render: (d) => d.titulo },
-            { title: 'Responsável', render: (d) => d.responsavel_id || '-' },
+            {
+              title: 'Responsável',
+              render: (d) => (d.responsavel_id ? usuariosMap.get(d.responsavel_id)?.nome || d.responsavel_id : '-'),
+            },
             { title: 'Data Início', render: (d) => d.start_date || '-' },
             { title: 'Prazo', render: (d) => d.due_date || '-' },
             { title: 'Andamento', render: (d) => STATUS_ANDAMENTO_LABELS[d.status_andamento] },
@@ -295,66 +329,90 @@ export default function DetalheAvaliacao() {
           ]}
         />
 
-        <form className="grid four-col gap-12" onSubmit={criarDemanda}>
-          <input
-            placeholder="Título"
-            value={demanda.titulo}
-            onChange={(e) => setDemanda((d) => ({ ...d, titulo: e.target.value }))}
-            required
-          />
-          <input
-            placeholder="Descrição"
-            value={demanda.descricao}
-            onChange={(e) => setDemanda((d) => ({ ...d, descricao: e.target.value }))}
-          />
-
-          <select
-            value={demanda.responsavel_id}
-            onChange={(e) => setDemanda((d) => ({ ...d, responsavel_id: e.target.value ? Number(e.target.value) : '' }))}
-          >
-            <option value="">Sem responsável</option>
-            {usuarios.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.nome} ({u.role})
-              </option>
-            ))}
-          </select>
-
-          <input
-            type="date"
-            value={demanda.start_date}
-            onChange={(e) => setDemanda((d) => ({ ...d, start_date: e.target.value }))}
-          />
-
-          <input
-            type="date"
-            value={demanda.due_date}
-            onChange={(e) => setDemanda((d) => ({ ...d, due_date: e.target.value }))}
-          />
-
-          <select
-            value={demanda.status_andamento}
-            onChange={(e) => setDemanda((d) => ({ ...d, status_andamento: e.target.value as StatusAndamento }))}
-          >
-            {STATUS_DEMANDA_LIST.map((status) => (
-              <option key={status} value={status}>
-                {STATUS_ANDAMENTO_LABELS[status]}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={demanda.prioridade}
-            onChange={(e) => setDemanda((d) => ({ ...d, prioridade: e.target.value as Prioridade }))}
-          >
-            {PRIORIDADE_LIST.map((p) => (
-              <option key={p} value={p}>
-                {PRIORIDADE_LABELS[p]}
-              </option>
-            ))}
-          </select>
-
-          <button type="submit">Criar Demanda</button>
+        <form className="detalhe-demanda-form" onSubmit={criarDemanda}>
+          <div className="grid four-col gap-12">
+            <label className="form-row">
+              <span>Título</span>
+              <input
+                placeholder="Título da demanda"
+                value={demanda.titulo}
+                onChange={(e) => setDemanda((d) => ({ ...d, titulo: e.target.value }))}
+                required
+              />
+            </label>
+            <label className="form-row">
+              <span>Descrição</span>
+              <input
+                placeholder="Descrição"
+                value={demanda.descricao}
+                onChange={(e) => setDemanda((d) => ({ ...d, descricao: e.target.value }))}
+              />
+            </label>
+            <label className="form-row">
+              <span>Responsável</span>
+              <select
+                value={demanda.responsavel_id}
+                onChange={(e) =>
+                  setDemanda((d) => ({
+                    ...d,
+                    responsavel_id: e.target.value ? Number(e.target.value) : '',
+                  }))
+                }
+              >
+                <option value="">Sem responsável</option>
+                {usuarios.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nome} ({u.role})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="form-row">
+              <span>Data Início</span>
+              <input
+                type="date"
+                value={demanda.start_date}
+                onChange={(e) => setDemanda((d) => ({ ...d, start_date: e.target.value }))}
+              />
+            </label>
+            <label className="form-row">
+              <span>Data Fim</span>
+              <input
+                type="date"
+                value={demanda.due_date}
+                onChange={(e) => setDemanda((d) => ({ ...d, due_date: e.target.value }))}
+              />
+            </label>
+            <label className="form-row">
+              <span>Status de Andamento</span>
+              <select
+                value={demanda.status_andamento}
+                onChange={(e) => setDemanda((d) => ({ ...d, status_andamento: e.target.value as StatusAndamento }))}
+              >
+                {STATUS_DEMANDA_LIST.map((status) => (
+                  <option key={status} value={status}>
+                    {STATUS_ANDAMENTO_LABELS[status]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="form-row">
+              <span>Prioridade</span>
+              <select
+                value={demanda.prioridade}
+                onChange={(e) => setDemanda((d) => ({ ...d, prioridade: e.target.value as Prioridade }))}
+              >
+                {PRIORIDADE_LIST.map((p) => (
+                  <option key={p} value={p}>
+                    {PRIORIDADE_LABELS[p]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="detalhe-form-actions">
+            <button type="submit">Criar Demanda</button>
+          </div>
         </form>
       </div>
 
