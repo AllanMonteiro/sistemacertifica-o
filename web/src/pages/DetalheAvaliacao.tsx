@@ -72,11 +72,15 @@ export default function DetalheAvaliacao() {
       setStatusConformidade(detalheResp.data.avaliacao.status_conformidade);
       setObservacoes(detalheResp.data.avaliacao.observacoes || '');
 
-      const tiposResp = await api.get<TipoEvidencia[]>('/tipos-evidencia');
+      const tiposResp = await api.get<TipoEvidencia[]>('/tipos-evidencia', {
+        params: {
+          programa_id: detalheResp.data.avaliacao.programa_id,
+          criterio_id: detalheResp.data.criterio.id,
+          indicator_id: detalheResp.data.indicador.id,
+        },
+      });
       setTipos(tiposResp.data);
-      if (tiposResp.data[0]) {
-        setTipoEvidenciaId(tiposResp.data[0].id);
-      }
+      setTipoEvidenciaId(tiposResp.data[0]?.id || '');
 
       try {
         const usuariosResp = await api.get<Usuario[]>('/usuarios');

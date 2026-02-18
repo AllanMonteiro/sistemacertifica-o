@@ -228,6 +228,9 @@ class AvaliacaoOut(AvaliacaoBase):
 
 
 class EvidenceTypeBase(BaseModel):
+    programa_id: int
+    criterio_id: int
+    indicador_id: int
     nome: str = Field(min_length=2, max_length=120)
     descricao: str | None = None
 
@@ -237,14 +240,22 @@ class EvidenceTypeCreate(EvidenceTypeBase):
 
 
 class EvidenceTypeUpdate(BaseModel):
+    programa_id: int | None = None
+    criterio_id: int | None = None
+    indicador_id: int | None = None
     nome: str | None = Field(default=None, min_length=2, max_length=120)
     descricao: str | None = None
 
 
-class EvidenceTypeOut(EvidenceTypeBase):
+class EvidenceTypeOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    programa_id: int | None
+    criterio_id: int | None
+    indicador_id: int | None
+    nome: str
+    descricao: str | None
 
 
 class EvidenciaCreate(BaseModel):

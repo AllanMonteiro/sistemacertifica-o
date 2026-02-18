@@ -117,6 +117,9 @@ export type KindEvidencia = 'arquivo' | 'link' | 'texto';
 
 export interface TipoEvidencia {
   id: number;
+  programa_id?: number | null;
+  criterio_id?: number | null;
+  indicador_id?: number | null;
   nome: string;
   descricao?: string | null;
 }

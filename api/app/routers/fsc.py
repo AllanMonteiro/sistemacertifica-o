@@ -222,6 +222,55 @@ def _buscar_tipo_evidencia(db: Session, tipo_id: int) -> EvidenceType:
     return tipo
 
 
+def _validar_vinculo_tipo_evidencia(
+    db: Session,
+    programa_id: int,
+    criterio_id: int,
+    indicador_id: int,
+) -> tuple[Criterio, Indicador]:
+    _buscar_programa(db, programa_id)
+    criterio = _buscar_criterio(db, criterio_id)
+    indicador = _buscar_indicador(db, indicador_id)
+
+    _validar_mesmo_programa(programa_id, criterio.programa_id, 'vínculo do tipo de evidência (critério)')
+    _validar_mesmo_programa(programa_id, indicador.programa_id, 'vínculo do tipo de evidência (indicador)')
+    if indicador.criterio_id != criterio.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='O indicador informado não pertence ao critério informado.',
+        )
+    return criterio, indicador
+
+
+def _validar_tipo_evidencia_compativel_com_avaliacao(
+    db: Session,
+    tipo: EvidenceType,
+    avaliacao: AvaliacaoIndicador,
+) -> None:
+    if tipo.programa_id is None or tipo.criterio_id is None or tipo.indicador_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Tipo de evidência inválido: ele precisa estar vinculado a programa, critério e indicador.',
+        )
+
+    indicador_avaliacao = avaliacao.indicador or _buscar_indicador(db, avaliacao.indicator_id)
+    if tipo.programa_id != avaliacao.programa_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Tipo de evidência não pertence ao mesmo programa da avaliação.',
+        )
+    if tipo.criterio_id != indicador_avaliacao.criterio_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Tipo de evidência não pertence ao mesmo critério da avaliação.',
+        )
+    if tipo.indicador_id != avaliacao.indicator_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Tipo de evidência não pertence ao mesmo indicador da avaliação.',
+        )
+
+
 def _buscar_demanda(db: Session, demanda_id: int) -> Demanda:
     demanda = db.get(Demanda, demanda_id)
     if not demanda:
@@ -1239,10 +1288,24 @@ def detalhar_avaliacao(
 
 @router.get('/tipos-evidencia', response_model=list[EvidenceTypeOut])
 def listar_tipos_evidencia(
+    programa_id: int | None = Query(default=None),
+    criterio_id: int | None = Query(default=None),
+    indicator_id: int | None = Query(default=None),
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[EvidenceTypeOut]:
-    return list(db.scalars(select(EvidenceType).order_by(EvidenceType.nome)).all())
+    query = select(EvidenceType).where(
+        EvidenceType.programa_id.is_not(None),
+        EvidenceType.criterio_id.is_not(None),
+        EvidenceType.indicador_id.is_not(None),
+    )
+    if programa_id:
+        query = query.where(EvidenceType.programa_id == programa_id)
+    if criterio_id:
+        query = query.where(EvidenceType.criterio_id == criterio_id)
+    if indicator_id:
+        query = query.where(EvidenceType.indicador_id == indicator_id)
+    return list(db.scalars(query.order_by(EvidenceType.nome)).all())
 
 
 @router.post('/tipos-evidencia', response_model=EvidenceTypeOut, status_code=status.HTTP_201_CREATED)
@@ -1251,9 +1314,20 @@ def criar_tipo_evidencia(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(RoleEnum.ADMIN, RoleEnum.GESTOR)),
 ) -> EvidenceTypeOut:
-    existente = db.scalar(select(EvidenceType).where(func.lower(EvidenceType.nome) == payload.nome.lower()))
+    _validar_vinculo_tipo_evidencia(db, payload.programa_id, payload.criterio_id, payload.indicador_id)
+    existente = db.scalar(
+        select(EvidenceType).where(
+            func.lower(EvidenceType.nome) == payload.nome.lower(),
+            EvidenceType.programa_id == payload.programa_id,
+            EvidenceType.criterio_id == payload.criterio_id,
+            EvidenceType.indicador_id == payload.indicador_id,
+        )
+    )
     if existente:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Já existe tipo de evidência com este nome.')
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Já existe tipo de evidência com este nome para este indicador.',
+        )
 
     tipo = EvidenceType(**payload.model_dump())
     db.add(tipo)
@@ -1265,6 +1339,7 @@ def criar_tipo_evidencia(
         acao=AcaoAuditEnum.CREATE,
         created_by=current_user.id,
         new_value=_dump_model(tipo),
+        programa_id=tipo.programa_id,
     )
     db.commit()
     db.refresh(tipo)
@@ -1289,15 +1364,33 @@ def atualizar_tipo_evidencia(
 ) -> EvidenceTypeOut:
     tipo = _buscar_tipo_evidencia(db, tipo_id)
     data = payload.model_dump(exclude_unset=True)
-    if 'nome' in data and data['nome']:
+    programa_id = data.get('programa_id', tipo.programa_id)
+    criterio_id = data.get('criterio_id', tipo.criterio_id)
+    indicador_id = data.get('indicador_id', tipo.indicador_id)
+    nome = data.get('nome', tipo.nome)
+
+    if programa_id is None or criterio_id is None or indicador_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Tipo de evidência deve estar vinculado a programa, critério e indicador.',
+        )
+    _validar_vinculo_tipo_evidencia(db, programa_id, criterio_id, indicador_id)
+
+    if nome:
         existente = db.scalar(
             select(EvidenceType).where(
-                func.lower(EvidenceType.nome) == data['nome'].lower(),
+                func.lower(EvidenceType.nome) == nome.lower(),
+                EvidenceType.programa_id == programa_id,
+                EvidenceType.criterio_id == criterio_id,
+                EvidenceType.indicador_id == indicador_id,
                 EvidenceType.id != tipo_id,
             )
         )
         if existente:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Já existe tipo de evidência com este nome.')
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Já existe tipo de evidência com este nome para este indicador.',
+            )
 
     old_value = _dump_model(tipo)
     for field, value in data.items():
@@ -1310,6 +1403,7 @@ def atualizar_tipo_evidencia(
         created_by=current_user.id,
         old_value=old_value,
         new_value=_dump_model(tipo),
+        programa_id=tipo.programa_id,
     )
     db.commit()
     db.refresh(tipo)
@@ -1332,6 +1426,7 @@ def remover_tipo_evidencia(
         acao=AcaoAuditEnum.DELETE,
         created_by=current_user.id,
         old_value=old_value,
+        programa_id=tipo.programa_id,
     )
     db.commit()
     return MensagemOut(mensagem='Tipo de evidência removido com sucesso.')
@@ -1363,7 +1458,8 @@ def criar_evidencia(
         )
     avaliacao = _buscar_avaliacao(db, payload.avaliacao_id)
     if payload.tipo_evidencia_id is not None:
-        _buscar_tipo_evidencia(db, payload.tipo_evidencia_id)
+        tipo = _buscar_tipo_evidencia(db, payload.tipo_evidencia_id)
+        _validar_tipo_evidencia_compativel_com_avaliacao(db, tipo, avaliacao)
 
     evidencia = Evidencia(**payload.model_dump(), created_by=current_user.id)
     db.add(evidencia)
@@ -1395,7 +1491,8 @@ def upload_evidencia(
 ) -> EvidenciaOut:
     avaliacao = _buscar_avaliacao(db, avaliacao_id)
     if tipo_evidencia_id is not None:
-        _buscar_tipo_evidencia(db, tipo_evidencia_id)
+        tipo = _buscar_tipo_evidencia(db, tipo_evidencia_id)
+        _validar_tipo_evidencia_compativel_com_avaliacao(db, tipo, avaliacao)
 
     suffix = Path(file.filename or 'arquivo').suffix
     key = f'auditoria_{avaliacao.auditoria_ano_id}/avaliacao_{avaliacao.id}/{uuid4().hex}{suffix}'

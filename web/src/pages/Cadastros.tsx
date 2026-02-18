@@ -20,7 +20,7 @@ export default function Cadastros({ programaId }: Props) {
   const [novoPrincipio, setNovoPrincipio] = useState({ codigo: '', titulo: '', descricao: '' });
   const [novoCriterio, setNovoCriterio] = useState({ principio_id: 0, codigo: '', titulo: '', descricao: '' });
   const [novoIndicador, setNovoIndicador] = useState({ criterio_id: 0, codigo: '', titulo: '', descricao: '' });
-  const [novoTipo, setNovoTipo] = useState({ nome: '', descricao: '' });
+  const [novoTipo, setNovoTipo] = useState({ criterio_id: 0, indicador_id: 0, nome: '', descricao: '' });
   const [principioEdicao, setPrincipioEdicao] = useState<Principio | null>(null);
   const [criterioEdicao, setCriterioEdicao] = useState<Criterio | null>(null);
   const [indicadorEdicao, setIndicadorEdicao] = useState<Indicador | null>(null);
@@ -30,6 +30,11 @@ export default function Cadastros({ programaId }: Props) {
 
   const principioMap = useMemo(() => new Map(principios.map((p) => [p.id, p])), [principios]);
   const criterioMap = useMemo(() => new Map(criterios.map((c) => [c.id, c])), [criterios]);
+  const indicadorMap = useMemo(() => new Map(indicadores.map((i) => [i.id, i])), [indicadores]);
+  const indicadoresDoTipo = useMemo(
+    () => indicadores.filter((indicador) => indicador.criterio_id === novoTipo.criterio_id),
+    [indicadores, novoTipo.criterio_id]
+  );
 
   const carregar = async () => {
     setErro('');
@@ -37,12 +42,7 @@ export default function Cadastros({ programaId }: Props) {
       setPrincipios([]);
       setCriterios([]);
       setIndicadores([]);
-      try {
-        const { data } = await api.get<TipoEvidencia[]>('/tipos-evidencia');
-        setTipos(data);
-      } catch {
-        setTipos([]);
-      }
+      setTipos([]);
       return;
     }
     try {
@@ -50,7 +50,7 @@ export default function Cadastros({ programaId }: Props) {
         api.get<Principio[]>('/principios', { params: { programa_id: programaId } }),
         api.get<Criterio[]>('/criterios', { params: { programa_id: programaId } }),
         api.get<Indicador[]>('/indicadores', { params: { programa_id: programaId } }),
-        api.get<TipoEvidencia[]>('/tipos-evidencia'),
+        api.get<TipoEvidencia[]>('/tipos-evidencia', { params: { programa_id: programaId } }),
       ]);
       setPrincipios(p.data);
       setCriterios(c.data);
@@ -63,6 +63,12 @@ export default function Cadastros({ programaId }: Props) {
       if (!c.data.some((item) => item.id === novoIndicador.criterio_id)) {
         setNovoIndicador((prev) => ({ ...prev, criterio_id: c.data[0]?.id || 0 }));
       }
+      const criterioTipoBase = c.data.some((item) => item.id === novoTipo.criterio_id) ? novoTipo.criterio_id : c.data[0]?.id || 0;
+      const indicadoresDoCriterio = i.data.filter((item) => item.criterio_id === criterioTipoBase);
+      const indicadorTipoBase = indicadoresDoCriterio.some((item) => item.id === novoTipo.indicador_id)
+        ? novoTipo.indicador_id
+        : indicadoresDoCriterio[0]?.id || i.data[0]?.id || 0;
+      setNovoTipo((prev) => ({ ...prev, criterio_id: criterioTipoBase, indicador_id: indicadorTipoBase }));
     } catch (err: any) {
       setErro(err?.response?.data?.detail || 'Falha ao carregar cadastros.');
     }
@@ -72,6 +78,12 @@ export default function Cadastros({ programaId }: Props) {
     void carregar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [programaId]);
+
+  useEffect(() => {
+    if (!indicadoresDoTipo.some((item) => item.id === novoTipo.indicador_id)) {
+      setNovoTipo((prev) => ({ ...prev, indicador_id: indicadoresDoTipo[0]?.id || 0 }));
+    }
+  }, [indicadoresDoTipo, novoTipo.indicador_id]);
 
   const sucesso = (msg: string) => {
     setMensagem(msg);
@@ -152,13 +164,24 @@ export default function Cadastros({ programaId }: Props) {
 
   const criarTipo = async (e: FormEvent) => {
     e.preventDefault();
+    if (!programaId) {
+      setErro('Selecione um Programa de Certificação para cadastrar tipos de evidência.');
+      return;
+    }
+    if (!novoTipo.criterio_id || !novoTipo.indicador_id) {
+      setErro('Selecione critério e indicador para vincular o tipo de evidência.');
+      return;
+    }
     setErro('');
     try {
       await api.post('/tipos-evidencia', {
+        programa_id: programaId,
+        criterio_id: Number(novoTipo.criterio_id),
+        indicador_id: Number(novoTipo.indicador_id),
         nome: novoTipo.nome,
         descricao: novoTipo.descricao || null,
       });
-      setNovoTipo({ nome: '', descricao: '' });
+      setNovoTipo((prev) => ({ ...prev, nome: '', descricao: '' }));
       await carregar();
       sucesso('Tipo de evidência criado.');
     } catch (err) {
@@ -437,7 +460,38 @@ export default function Cadastros({ programaId }: Props) {
 
       <div className="card">
         <h3>Tipos de Evidência</h3>
-        <form className="grid two-col gap-12" onSubmit={criarTipo}>
+        <form className="grid four-col gap-12" onSubmit={criarTipo}>
+          <select
+            value={novoTipo.criterio_id}
+            onChange={(e) =>
+              setNovoTipo((t) => ({
+                ...t,
+                criterio_id: Number(e.target.value),
+              }))
+            }
+            required
+          >
+            {criterios.length === 0 && <option value={0}>Nenhum critério cadastrado</option>}
+            {criterios.map((criterio) => (
+              <option key={criterio.id} value={criterio.id}>
+                {criterio.codigo ? `${criterio.codigo} - ` : ''}
+                {criterio.titulo}
+              </option>
+            ))}
+          </select>
+          <select
+            value={novoTipo.indicador_id}
+            onChange={(e) => setNovoTipo((t) => ({ ...t, indicador_id: Number(e.target.value) }))}
+            required
+          >
+            {indicadoresDoTipo.length === 0 && <option value={0}>Nenhum indicador cadastrado</option>}
+            {indicadoresDoTipo.map((indicador) => (
+              <option key={indicador.id} value={indicador.id}>
+                {indicador.codigo ? `${indicador.codigo} - ` : ''}
+                {indicador.titulo}
+              </option>
+            ))}
+          </select>
           <input
             placeholder="Nome"
             value={novoTipo.nome}
@@ -449,11 +503,29 @@ export default function Cadastros({ programaId }: Props) {
             value={novoTipo.descricao}
             onChange={(e) => setNovoTipo((t) => ({ ...t, descricao: e.target.value }))}
           />
-          <button type="submit">Adicionar Tipo de Evidência</button>
+          <button type="submit" disabled={!programaId || criterios.length === 0 || indicadoresDoTipo.length === 0}>
+            Adicionar Tipo de Evidência
+          </button>
         </form>
         <Table
           rows={tipos}
           columns={[
+            {
+              title: 'Critério',
+              render: (t) => {
+                const criterio = criterioMap.get(t.criterio_id || 0);
+                if (!criterio) return '-';
+                return `${criterio.codigo ? `${criterio.codigo} - ` : ''}${criterio.titulo}`;
+              },
+            },
+            {
+              title: 'Indicador',
+              render: (t) => {
+                const indicador = indicadorMap.get(t.indicador_id || 0);
+                if (!indicador) return '-';
+                return `${indicador.codigo ? `${indicador.codigo} - ` : ''}${indicador.titulo}`;
+              },
+            },
             { title: 'Nome', render: (t) => t.nome },
             { title: 'Descrição', render: (t) => t.descricao || '-' },
             {

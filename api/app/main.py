@@ -9,7 +9,7 @@ from sqlalchemy import select
 from app.core.config import get_settings
 from app.core.security import hash_password
 from app.db.session import SessionLocal
-from app.models.fsc import AuditoriaAno, ConfiguracaoSistema, EvidenceType, ProgramaCertificacao
+from app.models.fsc import AuditoriaAno, ConfiguracaoSistema, Criterio, EvidenceType, Indicador, ProgramaCertificacao
 from app.models.user import RoleEnum, User
 from app.routers import auth, fsc, reports
 from app.services.s3_storage import ensure_bucket_exists
@@ -99,12 +99,51 @@ def _seed_evidence_types() -> None:
     ]
 
     with SessionLocal() as db:
-        existente = db.scalar(select(EvidenceType.id).limit(1))
-        if existente:
+        indicadores = list(db.scalars(select(Indicador).order_by(Indicador.id)).all())
+        if not indicadores:
             return
+        existentes = {
+            (int(programa_id), int(criterio_id), int(indicador_id), str(nome).lower())
+            for programa_id, criterio_id, indicador_id, nome in db.execute(
+                select(
+                    EvidenceType.programa_id,
+                    EvidenceType.criterio_id,
+                    EvidenceType.indicador_id,
+                    EvidenceType.nome,
+                ).where(
+                    EvidenceType.programa_id.is_not(None),
+                    EvidenceType.criterio_id.is_not(None),
+                    EvidenceType.indicador_id.is_not(None),
+                )
+            ).all()
+        }
+        alterou = False
+
+        criterio_por_id = {
+            criterio.id: criterio
+            for criterio in db.scalars(select(Criterio).where(Criterio.id.in_([i.criterio_id for i in indicadores]))).all()
+        }
         for nome, descricao in tipos_padrao:
-            db.add(EvidenceType(nome=nome, descricao=descricao))
-        db.commit()
+            for indicador in indicadores:
+                criterio = criterio_por_id.get(indicador.criterio_id)
+                if not criterio:
+                    continue
+                chave = (indicador.programa_id, criterio.id, indicador.id, nome.lower())
+                if chave in existentes:
+                    continue
+                db.add(
+                    EvidenceType(
+                        programa_id=indicador.programa_id,
+                        criterio_id=criterio.id,
+                        indicador_id=indicador.id,
+                        nome=nome,
+                        descricao=descricao,
+                    )
+                )
+                existentes.add(chave)
+                alterou = True
+        if alterou:
+            db.commit()
 
 
 def _seed_admin_user() -> None:

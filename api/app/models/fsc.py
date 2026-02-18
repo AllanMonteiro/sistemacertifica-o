@@ -52,6 +52,7 @@ class ProgramaCertificacao(Base):
     avaliacoes = relationship('AvaliacaoIndicador', back_populates='programa')
     evidencias = relationship('Evidencia', back_populates='programa')
     demandas = relationship('Demanda', back_populates='programa')
+    tipos_evidencia = relationship('EvidenceType', back_populates='programa')
 
 
 class Principio(Base):
@@ -81,6 +82,7 @@ class Criterio(Base):
     programa = relationship('ProgramaCertificacao', back_populates='criterios')
     principio = relationship('Principio', back_populates='criterios')
     indicadores = relationship('Indicador', back_populates='criterio', cascade='all, delete-orphan')
+    tipos_evidencia = relationship('EvidenceType', back_populates='criterio')
 
 
 class Indicador(Base):
@@ -96,6 +98,7 @@ class Indicador(Base):
     programa = relationship('ProgramaCertificacao', back_populates='indicadores')
     criterio = relationship('Criterio', back_populates='indicadores')
     avaliacoes = relationship('AvaliacaoIndicador', back_populates='indicador', cascade='all, delete-orphan')
+    tipos_evidencia = relationship('EvidenceType', back_populates='indicador')
 
 
 class AuditoriaAno(Base):
@@ -146,11 +149,32 @@ class AvaliacaoIndicador(Base):
 
 class EvidenceType(Base):
     __tablename__ = 'tipos_evidencia'
+    __table_args__ = (
+        UniqueConstraint('programa_id', 'criterio_id', 'indicador_id', 'nome', name='uq_tipos_evidencia_nome_vinculo'),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    nome: Mapped[str] = mapped_column(String(120), nullable=False, unique=True)
+    programa_id: Mapped[int | None] = mapped_column(
+        ForeignKey('programas_certificacao.id', ondelete='RESTRICT'),
+        nullable=True,
+        index=True,
+    )
+    criterio_id: Mapped[int | None] = mapped_column(
+        ForeignKey('criterios.id', ondelete='CASCADE'),
+        nullable=True,
+        index=True,
+    )
+    indicador_id: Mapped[int | None] = mapped_column(
+        ForeignKey('indicadores.id', ondelete='CASCADE'),
+        nullable=True,
+        index=True,
+    )
+    nome: Mapped[str] = mapped_column(String(120), nullable=False)
     descricao: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    programa = relationship('ProgramaCertificacao', back_populates='tipos_evidencia')
+    criterio = relationship('Criterio', back_populates='tipos_evidencia')
+    indicador = relationship('Indicador', back_populates='tipos_evidencia')
     evidencias = relationship('Evidencia', back_populates='tipo_evidencia')
 
 
