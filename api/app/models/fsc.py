@@ -180,6 +180,7 @@ class Demanda(Base):
     programa_id: Mapped[int] = mapped_column(ForeignKey('programas_certificacao.id', ondelete='RESTRICT'), nullable=False, index=True)
     avaliacao_id: Mapped[int] = mapped_column(ForeignKey('avaliacoes_indicador.id', ondelete='CASCADE'), nullable=False, index=True)
     titulo: Mapped[str] = mapped_column(String(255), nullable=False)
+    padrao: Mapped[str | None] = mapped_column(String(255), nullable=True)
     descricao: Mapped[str | None] = mapped_column(Text, nullable=True)
     responsavel_id: Mapped[int | None] = mapped_column(ForeignKey('usuarios.id', ondelete='SET NULL'), nullable=True, index=True)
     start_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 
 import {
   api,
@@ -24,6 +24,7 @@ export default function Demandas({ programaId, auditoriaId }: Props) {
   const [atrasadas, setAtrasadas] = useState(false);
   const [erro, setErro] = useState('');
   const [mensagem, setMensagem] = useState('');
+  const usuariosMap = useMemo(() => new Map(usuarios.map((u) => [u.id, u.nome])), [usuarios]);
 
   const carregar = async () => {
     if (!programaId || !auditoriaId) return;
@@ -112,7 +113,11 @@ export default function Demandas({ programaId, auditoriaId }: Props) {
           rows={demandas}
           columns={[
             { title: 'Título', render: (d) => d.titulo },
-            { title: 'Responsável ID', render: (d) => d.responsavel_id || '-' },
+            { title: 'Padrão', render: (d) => d.padrao || '-' },
+            {
+              title: 'Responsável',
+              render: (d) => (d.responsavel_id ? usuariosMap.get(d.responsavel_id) || d.responsavel_id : '-'),
+            },
             { title: 'Início', render: (d) => d.start_date || '-' },
             { title: 'Prazo', render: (d) => d.due_date || '-' },
             {

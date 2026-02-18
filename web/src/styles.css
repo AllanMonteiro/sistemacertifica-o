@@ -504,15 +504,19 @@ button:disabled {
 }
 
 .demanda-titulo {
-  grid-column: span 4;
+  grid-column: span 3;
+}
+
+.demanda-padrao {
+  grid-column: span 3;
 }
 
 .demanda-descricao {
-  grid-column: span 4;
+  grid-column: span 3;
 }
 
 .demanda-responsavel {
-  grid-column: span 4;
+  grid-column: span 3;
 }
 
 .demanda-data-inicio {

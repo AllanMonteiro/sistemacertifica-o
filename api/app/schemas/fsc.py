@@ -272,6 +272,7 @@ class EvidenciaOut(BaseModel):
 class DemandaCreate(BaseModel):
     avaliacao_id: int
     titulo: str = Field(min_length=3, max_length=255)
+    padrao: str | None = Field(default=None, max_length=255)
     descricao: str | None = None
     responsavel_id: int | None = None
     start_date: date | None = None
@@ -282,6 +283,7 @@ class DemandaCreate(BaseModel):
 
 class DemandaUpdate(BaseModel):
     titulo: str | None = Field(default=None, min_length=3, max_length=255)
+    padrao: str | None = Field(default=None, max_length=255)
     descricao: str | None = None
     responsavel_id: int | None = None
     start_date: date | None = None
@@ -291,6 +293,7 @@ class DemandaUpdate(BaseModel):
 
 
 class DemandaPatch(BaseModel):
+    padrao: str | None = Field(default=None, max_length=255)
     responsavel_id: int | None = None
     start_date: date | None = None
     due_date: date | None = None
@@ -304,6 +307,7 @@ class DemandaOut(BaseModel):
     programa_id: int
     avaliacao_id: int
     titulo: str
+    padrao: str | None
     descricao: str | None
     responsavel_id: int | None
     start_date: date | None

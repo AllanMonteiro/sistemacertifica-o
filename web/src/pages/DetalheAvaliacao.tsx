@@ -46,6 +46,7 @@ export default function DetalheAvaliacao() {
 
   const [demanda, setDemanda] = useState({
     titulo: '',
+    padrao: '',
     descricao: '',
     responsavel_id: '' as number | '',
     start_date: '',
@@ -177,6 +178,7 @@ export default function DetalheAvaliacao() {
       await api.post('/demandas', {
         avaliacao_id: avaliacaoId,
         titulo: demanda.titulo,
+        padrao: demanda.padrao || null,
         descricao: demanda.descricao || null,
         responsavel_id: demanda.responsavel_id || null,
         start_date: demanda.start_date || null,
@@ -184,7 +186,7 @@ export default function DetalheAvaliacao() {
         status_andamento: demanda.status_andamento,
         prioridade: demanda.prioridade,
       });
-      setDemanda((prev) => ({ ...prev, titulo: '', descricao: '', start_date: '', due_date: '' }));
+      setDemanda((prev) => ({ ...prev, titulo: '', padrao: '', descricao: '', start_date: '', due_date: '' }));
       await carregar();
       sucesso('Demanda criada.');
     } catch (err) {
@@ -350,6 +352,7 @@ export default function DetalheAvaliacao() {
           rows={detalhe.demandas}
           columns={[
             { title: 'Título', render: (d) => d.titulo },
+            { title: 'Padrão', render: (d) => d.padrao || '-' },
             {
               title: 'Responsável',
               render: (d) => (d.responsavel_id ? usuariosMap.get(d.responsavel_id)?.nome || d.responsavel_id : '-'),
@@ -370,6 +373,14 @@ export default function DetalheAvaliacao() {
                 value={demanda.titulo}
                 onChange={(e) => setDemanda((d) => ({ ...d, titulo: e.target.value }))}
                 required
+              />
+            </label>
+            <label className="form-row demanda-field demanda-padrao">
+              <span>Padrão</span>
+              <input
+                placeholder="Ex.: FSC-STD-BR-01"
+                value={demanda.padrao}
+                onChange={(e) => setDemanda((d) => ({ ...d, padrao: e.target.value }))}
               />
             </label>
             <label className="form-row demanda-field demanda-descricao">

@@ -162,6 +162,7 @@ export interface Demanda {
   programa_id: number;
   avaliacao_id: number;
   titulo: string;
+  padrao?: string | null;
   descricao?: string | null;
   responsavel_id?: number | null;
   start_date?: string | null;

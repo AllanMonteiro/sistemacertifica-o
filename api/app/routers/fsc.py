@@ -1607,7 +1607,7 @@ def patch_demanda(
     if current_user.role == RoleEnum.RESPONSAVEL:
         if demanda.responsavel_id != current_user.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Você só pode atualizar demandas atribuídas a você.')
-        campos_invalidos = {'responsavel_id', 'start_date', 'due_date'} & set(data.keys())
+        campos_invalidos = {'padrao', 'responsavel_id', 'start_date', 'due_date'} & set(data.keys())
         if campos_invalidos:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
