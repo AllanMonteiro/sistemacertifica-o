@@ -307,7 +307,7 @@ export default function Cadastros({ programaId }: Props) {
             {
               title: 'Ações',
               render: (p) => (
-                <div className="row-actions">
+                <div className="row-actions cadastros-row-actions">
                   <button type="button" onClick={() => abrirEdicaoPrincipio(p)}>
                     Editar
                   </button>
@@ -364,7 +364,7 @@ export default function Cadastros({ programaId }: Props) {
             {
               title: 'Ações',
               render: (c) => (
-                <div className="row-actions">
+                <div className="row-actions cadastros-row-actions">
                   <button type="button" onClick={() => abrirEdicaoCriterio(c)}>
                     Editar
                   </button>
@@ -421,7 +421,7 @@ export default function Cadastros({ programaId }: Props) {
             {
               title: 'Ações',
               render: (i) => (
-                <div className="row-actions">
+                <div className="row-actions cadastros-row-actions">
                   <button type="button" onClick={() => abrirEdicaoIndicador(i)}>
                     Editar
                   </button>

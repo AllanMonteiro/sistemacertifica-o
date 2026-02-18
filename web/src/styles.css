@@ -386,65 +386,292 @@ button:disabled {
   color: var(--muted);
 }
 
-.gantt-list {
+.cronograma-info-grid {
   display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
-.gantt-row {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px;
-  background: #fafcf8;
-}
-
-.gantt-meta {
+.cronograma-info-item {
   display: grid;
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: 6px;
 }
 
-.gantt-meta span {
+.cronograma-info-item > span {
   color: var(--muted);
   font-size: 13px;
 }
 
-.gantt-track {
+.cronograma-semana-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.cronograma-semana-controls select {
+  min-width: 140px;
+}
+
+.cronograma-btn-hoje {
+  white-space: nowrap;
+}
+
+.gantt-sheet-scroll {
   width: 100%;
-  height: 28px;
-  border-radius: 999px;
-  background: #e8efe4;
-  overflow: hidden;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  -webkit-overflow-scrolling: touch;
+}
+
+.gantt-sheet {
+  background: #fff;
+}
+
+.gantt-sheet-row {
+  display: grid;
+  grid-template-columns: 620px auto;
+  min-height: 42px;
+}
+
+.gantt-sheet-row-head {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+}
+
+.gantt-left-head,
+.gantt-left-row,
+.gantt-group-title {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+}
+
+.gantt-left-head {
+  display: grid;
+  grid-template-columns: 2.2fr 1.4fr 1fr 0.8fr 0.8fr;
+  align-items: center;
+  gap: 0;
+  background: #475158;
+  color: #fff;
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.gantt-left-head > div {
+  padding: 10px 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.gantt-right-head {
+  background: #f2f4f2;
+  border-bottom: 1px solid #cfd7d2;
+}
+
+.gantt-week-head-row {
+  display: flex;
+  min-height: 52px;
+}
+
+.gantt-week-head-cell {
+  appearance: none;
+  border: none;
+  border-right: 1px solid #cfd7d2;
+  border-bottom: none;
+  padding: 8px 6px;
+  margin: 0;
+  border-right: 1px solid #cfd7d2;
+  background: #e3e8e5;
+  color: #2f3a31;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.gantt-week-head-cell span {
+  font-size: 12px;
+}
+
+.gantt-week-head-cell small {
+  color: #536258;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.gantt-week-head-cell:hover {
+  background: #d7dfd9;
+}
+
+.gantt-week-head-cell.active {
+  background: #2d7a46;
+  color: #fff;
+}
+
+.gantt-week-head-cell.active small {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.gantt-week-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid #c9dac3;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #edf7ea 0%, #f6faf4 100%);
+}
+
+.gantt-week-detail strong {
+  color: #1f5b34;
+}
+
+.gantt-week-detail span {
+  color: #30503d;
+  font-size: 14px;
+}
+
+.gantt-group-title {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+}
+
+.gantt-group-conforme {
+  background: #d8e7d8;
+}
+
+.gantt-group-nc-menor {
+  background: #f5e2c7;
+}
+
+.gantt-group-nc-maior {
+  background: #f2cdcd;
+}
+
+.gantt-group-om {
+  background: #d8e4f7;
+}
+
+.gantt-group-nsa {
+  background: #e6e6e6;
+}
+
+.gantt-group-timeline {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: #f9fbf8;
+}
+
+.gantt-task-row {
+  border-bottom: 1px solid #d9e0db;
+}
+
+.gantt-left-row {
+  display: grid;
+  grid-template-columns: 2.2fr 1.4fr 1fr 0.8fr 0.8fr;
+  align-items: center;
+  background: #f6f8f5;
+}
+
+.gantt-left-row > div {
+  padding: 8px;
+  border-right: 1px solid #d9e0db;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+}
+
+.gantt-task-title {
+  display: grid !important;
+  align-content: center;
+  gap: 2px;
+}
+
+.gantt-task-title small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.gantt-progress-cell {
+  font-weight: 700;
+}
+
+.gantt-right-row {
+  position: relative;
+  min-height: 42px;
+  background: #fbfcfb;
+}
+
+.gantt-week-grid {
+  display: flex;
+  height: 42px;
+}
+
+.gantt-week-grid-cell {
+  border-right: 1px solid #dde3de;
+}
+
+.gantt-week-grid-cell.active {
+  background: rgba(45, 122, 70, 0.08);
 }
 
 .gantt-bar {
-  min-width: 56px;
-  height: 100%;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  padding: 0 8px;
+  position: absolute;
+  top: 7px;
+  height: 26px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.bar-prioridade-baixa {
+.gantt-bar-progress {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.gantt-bar-baixa {
   background: #2d7a46;
 }
 
-.bar-prioridade-media {
+.gantt-bar-media {
   background: #1f6f8b;
 }
 
-.bar-prioridade-alta {
+.gantt-bar-alta {
   background: #c46a14;
 }
 
-.bar-prioridade-critica {
+.gantt-bar-critica {
   background: #b42929;
+}
+
+.gantt-bar-baixa .gantt-bar-progress,
+.gantt-bar-media .gantt-bar-progress,
+.gantt-bar-alta .gantt-bar-progress,
+.gantt-bar-critica .gantt-bar-progress {
+  mix-blend-mode: soft-light;
+}
+
+.gantt-bar-label {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
 
 .between {
@@ -458,6 +685,17 @@ button:disabled {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.cadastros-row-actions {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.cadastros-row-actions button {
+  white-space: nowrap;
+  padding: 6px 10px;
+  line-height: 1.2;
 }
 
 .detalhe-avaliacao-page > .card {
@@ -633,6 +871,14 @@ button:disabled {
     padding: 16px;
   }
 
+  .cronograma-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gantt-sheet-row {
+    grid-template-columns: 560px auto;
+  }
+
   .detalhe-demanda-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -684,6 +930,24 @@ button:disabled {
   .three-col,
   .four-col {
     grid-template-columns: 1fr;
+  }
+
+  .cronograma-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cronograma-semana-controls {
+    flex-wrap: wrap;
+  }
+
+  .gantt-sheet-row {
+    grid-template-columns: 500px auto;
+  }
+
+  .gantt-left-head,
+  .gantt-left-row {
+    grid-template-columns: 2fr 1.2fr 0.8fr 0.8fr 0.8fr;
+    font-size: 12px;
   }
 
   .detalhe-upload-form {
@@ -754,6 +1018,19 @@ button:disabled {
     min-width: 560px;
   }
 
+  .gantt-sheet-row {
+    grid-template-columns: 450px auto;
+  }
+
+  .gantt-left-head,
+  .gantt-left-row {
+    grid-template-columns: 2fr 1fr 0.8fr 0.8fr 0.8fr;
+  }
+
+  .gantt-task-title small {
+    font-size: 11px;
+  }
+
   .modal-content {
     width: 96vw;
     max-height: 92vh;
@@ -766,6 +1043,14 @@ button:disabled {
 
   .detalhe-demanda-grid {
     grid-template-columns: 1fr;
+  }
+
+  .cadastros-row-actions {
+    flex-wrap: wrap;
+  }
+
+  .cadastros-row-actions button {
+    flex: 1 1 auto;
   }
 }
 
@@ -802,5 +1087,9 @@ button:disabled {
 
   .table {
     min-width: 500px;
+  }
+
+  .gantt-sheet-row {
+    grid-template-columns: 410px auto;
   }
 }

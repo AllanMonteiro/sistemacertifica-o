@@ -382,6 +382,7 @@ class CronogramaGanttItem(BaseModel):
     programa_id: int
     indicador_titulo: str
     titulo: str
+    responsavel_nome: str | None = None
     prioridade: PrioridadeEnum
     status_andamento: StatusAndamentoEnum
     status_conformidade: StatusConformidadeEnum

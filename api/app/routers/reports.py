@@ -263,6 +263,7 @@ def cronograma_nc(
             Demanda.programa_id.label('programa_id'),
             Indicador.titulo.label('indicador_titulo'),
             Demanda.titulo.label('titulo'),
+            User.nome.label('responsavel_nome'),
             Demanda.prioridade.label('prioridade'),
             Demanda.status_andamento.label('status_andamento'),
             AvaliacaoIndicador.status_conformidade.label('status_conformidade'),
@@ -272,6 +273,7 @@ def cronograma_nc(
         .join(AvaliacaoIndicador, AvaliacaoIndicador.id == Demanda.avaliacao_id)
         .join(AuditoriaAno, AuditoriaAno.id == AvaliacaoIndicador.auditoria_ano_id)
         .join(Indicador, Indicador.id == AvaliacaoIndicador.indicator_id)
+        .outerjoin(User, User.id == Demanda.responsavel_id)
         .where(
             Demanda.programa_id == programa_id,
             AvaliacaoIndicador.auditoria_ano_id == auditoria_id,
@@ -305,6 +307,7 @@ def cronograma_nc(
                 programa_id=int(row.programa_id),
                 indicador_titulo=str(row.indicador_titulo),
                 titulo=str(row.titulo),
+                responsavel_nome=str(row.responsavel_nome) if row.responsavel_nome else None,
                 prioridade=row.prioridade,
                 status_andamento=row.status_andamento,
                 status_conformidade=row.status_conformidade,

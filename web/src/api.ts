@@ -235,6 +235,7 @@ export interface CronogramaGanttItem {
   programa_id: number;
   indicador_titulo: string;
   titulo: string;
+  responsavel_nome?: string | null;
   prioridade: Prioridade;
   status_andamento: StatusAndamento;
   status_conformidade: StatusConformidade;

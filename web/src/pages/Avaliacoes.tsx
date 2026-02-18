@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   api,
   Avaliacao,
+  Criterio,
   Indicador,
   STATUS_CONFORMIDADE_LABELS,
   StatusConformidade,
@@ -27,12 +28,14 @@ const STATUS_OPTIONS: StatusConformidade[] = [
 export default function Avaliacoes({ programaId, auditoriaId }: Props) {
   const navigate = useNavigate();
   const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
+  const [criterios, setCriterios] = useState<Criterio[]>([]);
   const [indicadores, setIndicadores] = useState<Indicador[]>([]);
   const [statusFiltro, setStatusFiltro] = useState<string>('');
   const [busca, setBusca] = useState('');
   const [erro, setErro] = useState('');
   const [mensagem, setMensagem] = useState('');
 
+  const [novoCriterioId, setNovoCriterioId] = useState<number>(0);
   const [novoIndicadorId, setNovoIndicadorId] = useState<number>(0);
   const [novoStatus, setNovoStatus] = useState<StatusConformidade>('conforme');
   const [novaObs, setNovaObs] = useState('');
@@ -44,7 +47,7 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
     if (!auditoriaId || !programaId) return;
     setErro('');
     try {
-      const [aResp, iResp] = await Promise.all([
+      const [aResp, cResp, iResp] = await Promise.all([
         api.get<Avaliacao[]>('/avaliacoes', {
           params: {
             programa_id: programaId,
@@ -52,12 +55,19 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
             status_conformidade: statusFiltro || undefined,
           },
         }),
+        api.get<Criterio[]>('/criterios', { params: { programa_id: programaId } }),
         api.get<Indicador[]>('/indicadores', { params: { programa_id: programaId } }),
       ]);
+      const indicadoresAvaliados = new Set(aResp.data.map((item) => item.indicator_id));
+      const indicadoresDisponiveis = iResp.data.filter((item) => !indicadoresAvaliados.has(item.id));
       setAvaliacoes(aResp.data);
+      setCriterios(cResp.data);
       setIndicadores(iResp.data);
-      if (!iResp.data.some((item) => item.id === novoIndicadorId)) {
-        setNovoIndicadorId(iResp.data[0]?.id || 0);
+      if (!indicadoresDisponiveis.some((item) => item.id === novoIndicadorId)) {
+        setNovoIndicadorId(indicadoresDisponiveis[0]?.id || 0);
+      }
+      if (!indicadoresDisponiveis.some((item) => item.criterio_id === novoCriterioId)) {
+        setNovoCriterioId(indicadoresDisponiveis[0]?.criterio_id || cResp.data[0]?.id || 0);
       }
     } catch (err: any) {
       setErro(err?.response?.data?.detail || 'Falha ao carregar avaliações.');
@@ -69,21 +79,45 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [programaId, auditoriaId, statusFiltro]);
 
+  const criterioMap = useMemo(() => new Map(criterios.map((c) => [c.id, c])), [criterios]);
   const indicadorMap = useMemo(() => new Map(indicadores.map((i) => [i.id, i])), [indicadores]);
+  const indicadoresDisponiveis = useMemo(() => {
+    const avaliados = new Set(avaliacoes.map((item) => item.indicator_id));
+    return indicadores.filter((item) => !avaliados.has(item.id));
+  }, [avaliacoes, indicadores]);
+  const criteriosComIndicadorDisponivel = useMemo(() => {
+    const ids = new Set(indicadoresDisponiveis.map((item) => item.criterio_id));
+    return criterios.filter((item) => ids.has(item.id));
+  }, [criterios, indicadoresDisponiveis]);
+  const indicadoresDoCriterioSelecionado = useMemo(() => {
+    if (!novoCriterioId) return indicadoresDisponiveis;
+    return indicadoresDisponiveis.filter((item) => item.criterio_id === novoCriterioId);
+  }, [indicadoresDisponiveis, novoCriterioId]);
 
   const filtradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     if (!termo) return avaliacoes;
     return avaliacoes.filter((a) => {
       const indicador = indicadorMap.get(a.indicator_id);
-      const texto = `${indicador?.codigo || ''} ${indicador?.titulo || ''}`.toLowerCase();
+      const criterio = criterioMap.get(indicador?.criterio_id || 0);
+      const texto = `${criterio?.codigo || ''} ${criterio?.titulo || ''} ${indicador?.codigo || ''} ${indicador?.titulo || ''}`.toLowerCase();
       return texto.includes(termo);
     });
-  }, [avaliacoes, busca, indicadorMap]);
+  }, [avaliacoes, busca, indicadorMap, criterioMap]);
+
+  useEffect(() => {
+    if (!indicadoresDoCriterioSelecionado.some((item) => item.id === novoIndicadorId)) {
+      setNovoIndicadorId(indicadoresDoCriterioSelecionado[0]?.id || 0);
+    }
+  }, [indicadoresDoCriterioSelecionado, novoIndicadorId]);
 
   const criar = async (e: FormEvent) => {
     e.preventDefault();
     if (!auditoriaId || !programaId) return;
+    if (!novoIndicadorId) {
+      setErro('Não há indicador disponível para criar avaliação nesta auditoria.');
+      return;
+    }
     setErro('');
     setMensagem('');
     try {
@@ -145,8 +179,17 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
       <div className="card">
         <h3>Nova Avaliação</h3>
         <form className="grid four-col gap-12" onSubmit={criar}>
+          <select value={novoCriterioId} onChange={(e) => setNovoCriterioId(Number(e.target.value))} required>
+            {criteriosComIndicadorDisponivel.map((criterio) => (
+              <option key={criterio.id} value={criterio.id}>
+                {criterio.codigo ? `${criterio.codigo} - ` : ''}
+                {criterio.titulo}
+              </option>
+            ))}
+          </select>
+
           <select value={novoIndicadorId} onChange={(e) => setNovoIndicadorId(Number(e.target.value))} required>
-            {indicadores.map((indicador) => (
+            {indicadoresDoCriterioSelecionado.map((indicador) => (
               <option key={indicador.id} value={indicador.id}>
                 {indicador.codigo ? `${indicador.codigo} - ` : ''}
                 {indicador.titulo}
@@ -168,8 +211,13 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
             onChange={(e) => setNovaObs(e.target.value)}
           />
 
-          <button type="submit">Criar Avaliação</button>
+          <button type="submit" disabled={indicadoresDisponiveis.length === 0}>
+            Criar Avaliação
+          </button>
         </form>
+        {indicadoresDisponiveis.length === 0 && (
+          <p className="muted-text">Todos os indicadores deste programa já possuem avaliação para esta auditoria.</p>
+        )}
       </div>
 
       <div className="card">
@@ -198,6 +246,15 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
         <Table
           rows={filtradas}
           columns={[
+            {
+              title: 'Critério',
+              render: (a) => {
+                const indicador = indicadorMap.get(a.indicator_id);
+                const criterio = criterioMap.get(indicador?.criterio_id || 0);
+                if (!criterio) return '-';
+                return `${criterio.codigo ? `${criterio.codigo} - ` : ''}${criterio.titulo}`;
+              },
+            },
             {
               title: 'Indicador',
               render: (a) => {
