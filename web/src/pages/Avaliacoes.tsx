@@ -42,6 +42,7 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
   const [avaliacaoEdicao, setAvaliacaoEdicao] = useState<Avaliacao | null>(null);
   const [edicaoStatus, setEdicaoStatus] = useState<StatusConformidade>('conforme');
   const [edicaoObs, setEdicaoObs] = useState('');
+  const [avaliacaoStatusAtualizandoId, setAvaliacaoStatusAtualizandoId] = useState<number | null>(null);
 
   const carregar = async () => {
     if (!auditoriaId || !programaId) return;
@@ -165,6 +166,25 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
     }
   };
 
+  const atualizarStatusDireto = async (avaliacao: Avaliacao, statusConformidade: StatusConformidade) => {
+    if (avaliacao.status_conformidade === statusConformidade) return;
+    setErro('');
+    setMensagem('');
+    setAvaliacaoStatusAtualizandoId(avaliacao.id);
+    try {
+      await api.patch(`/avaliacoes/${avaliacao.id}`, {
+        status_conformidade: statusConformidade,
+        observacoes: avaliacao.observacoes || null,
+      });
+      await carregar();
+      setMensagem('Status de conformidade atualizado.');
+    } catch (err: any) {
+      setErro(err?.response?.data?.detail || 'Falha ao atualizar status da avaliação.');
+    } finally {
+      setAvaliacaoStatusAtualizandoId(null);
+    }
+  };
+
   if (!auditoriaId) {
     return <div className="card">Selecione uma Auditoria (Ano) para gerenciar avaliações.</div>;
   }
@@ -262,7 +282,22 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
                 return indicador ? `${indicador.codigo ? `${indicador.codigo} - ` : ''}${indicador.titulo}` : a.indicator_id;
               },
             },
-            { title: 'Status de Conformidade', render: (a) => STATUS_CONFORMIDADE_LABELS[a.status_conformidade] },
+            {
+              title: 'Status de Conformidade',
+              render: (a) => (
+                <select
+                  value={a.status_conformidade}
+                  disabled={avaliacaoStatusAtualizandoId === a.id}
+                  onChange={(e) => void atualizarStatusDireto(a, e.target.value as StatusConformidade)}
+                >
+                  {STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>
+                      {STATUS_CONFORMIDADE_LABELS[status]}
+                    </option>
+                  ))}
+                </select>
+              ),
+            },
             { title: 'Justificativa', render: (a) => a.observacoes || '-' },
             {
               title: 'Ações',

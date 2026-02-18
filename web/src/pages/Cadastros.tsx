@@ -37,6 +37,8 @@ const CERTIFICACOES_FIXAS = [
   { codigo: 'CARBONO', label: 'Carbono' },
 ] as const;
 
+const STATUS_CONFORMIDADE_OPTIONS = Object.keys(STATUS_CONFORMIDADE_LABELS) as StatusConformidade[];
+
 const normalizarTexto = (valor: string) =>
   valor
     .normalize('NFD')
@@ -79,6 +81,7 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
   const [edicaoPrincipio, setEdicaoPrincipio] = useState({ codigo: '', titulo: '', descricao: '' });
   const [edicaoCriterio, setEdicaoCriterio] = useState({ principio_id: 0, codigo: '', titulo: '', descricao: '' });
   const [edicaoIndicador, setEdicaoIndicador] = useState({ criterio_id: 0, codigo: '', titulo: '', descricao: '' });
+  const [tipoStatusAtualizandoId, setTipoStatusAtualizandoId] = useState<number | null>(null);
 
   const fluxoPronto = Boolean(programaId && auditoriaId);
   const principioMap = useMemo(() => new Map(principios.map((p) => [p.id, p])), [principios]);
@@ -516,6 +519,23 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
     }
   };
 
+  const atualizarStatusTipoEvidencia = async (tipo: TipoEvidencia, statusConformidade: StatusConformidade) => {
+    if (tipo.status_conformidade === statusConformidade) return;
+    setErro('');
+    setTipoStatusAtualizandoId(tipo.id);
+    try {
+      const { data } = await api.put<TipoEvidencia>(`/tipos-evidencia/${tipo.id}`, {
+        status_conformidade: statusConformidade,
+      });
+      setTipos((prev) => prev.map((item) => (item.id === tipo.id ? data : item)));
+      sucesso('Status de conformidade do tipo de evidência atualizado.');
+    } catch (err) {
+      erroApi(err);
+    } finally {
+      setTipoStatusAtualizandoId(null);
+    }
+  };
+
   return (
     <div className="grid gap-16">
       <h2>Cadastros Base</h2>
@@ -828,9 +848,9 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
                   setNovoTipo((t) => ({ ...t, status_conformidade: e.target.value as StatusConformidade }))
                 }
               >
-                {Object.entries(STATUS_CONFORMIDADE_LABELS).map(([valor, label]) => (
+                {STATUS_CONFORMIDADE_OPTIONS.map((valor) => (
                   <option key={valor} value={valor}>
-                    {label}
+                    {STATUS_CONFORMIDADE_LABELS[valor]}
                   </option>
                 ))}
               </select>
@@ -867,7 +887,19 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
                 { title: 'Descrição', render: (t) => t.descricao || '-' },
                 {
                   title: 'Status de Conformidade',
-                  render: (t) => STATUS_CONFORMIDADE_LABELS[t.status_conformidade],
+                  render: (t) => (
+                    <select
+                      value={t.status_conformidade}
+                      disabled={tipoStatusAtualizandoId === t.id}
+                      onChange={(e) => void atualizarStatusTipoEvidencia(t, e.target.value as StatusConformidade)}
+                    >
+                      {STATUS_CONFORMIDADE_OPTIONS.map((status) => (
+                        <option key={status} value={status}>
+                          {STATUS_CONFORMIDADE_LABELS[status]}
+                        </option>
+                      ))}
+                    </select>
+                  ),
                 },
                 {
                   title: 'Ações',
