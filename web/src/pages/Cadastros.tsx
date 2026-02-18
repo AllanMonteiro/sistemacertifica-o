@@ -8,8 +8,6 @@ import {
   Indicador,
   Principio,
   ProgramaCertificacao,
-  STATUS_CONFORMIDADE_LABELS,
-  StatusConformidade,
   TipoEvidencia,
 } from '../api';
 import FormRow from '../components/FormRow';
@@ -36,8 +34,6 @@ const CERTIFICACOES_FIXAS = [
   { codigo: 'ONCA_PINTADA', label: 'Onça Pintada' },
   { codigo: 'CARBONO', label: 'Carbono' },
 ] as const;
-
-const STATUS_CONFORMIDADE_OPTIONS = Object.keys(STATUS_CONFORMIDADE_LABELS) as StatusConformidade[];
 
 const normalizarTexto = (valor: string) =>
   valor
@@ -72,16 +68,16 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
     indicador_id: 0,
     nome: '',
     descricao: '',
-    status_conformidade: 'conforme' as StatusConformidade,
   });
 
   const [principioEdicao, setPrincipioEdicao] = useState<Principio | null>(null);
   const [criterioEdicao, setCriterioEdicao] = useState<Criterio | null>(null);
   const [indicadorEdicao, setIndicadorEdicao] = useState<Indicador | null>(null);
+  const [tipoEdicao, setTipoEdicao] = useState<TipoEvidencia | null>(null);
   const [edicaoPrincipio, setEdicaoPrincipio] = useState({ codigo: '', titulo: '', descricao: '' });
   const [edicaoCriterio, setEdicaoCriterio] = useState({ principio_id: 0, codigo: '', titulo: '', descricao: '' });
   const [edicaoIndicador, setEdicaoIndicador] = useState({ criterio_id: 0, codigo: '', titulo: '', descricao: '' });
-  const [tipoStatusAtualizandoId, setTipoStatusAtualizandoId] = useState<number | null>(null);
+  const [edicaoTipo, setEdicaoTipo] = useState({ criterio_id: 0, indicador_id: 0, nome: '', descricao: '' });
 
   const fluxoPronto = Boolean(programaId && auditoriaId);
   const principioMap = useMemo(() => new Map(principios.map((p) => [p.id, p])), [principios]);
@@ -91,6 +87,10 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
   const indicadoresDoTipo = useMemo(
     () => indicadores.filter((indicador) => indicador.criterio_id === novoTipo.criterio_id),
     [indicadores, novoTipo.criterio_id]
+  );
+  const indicadoresDoTipoEdicao = useMemo(
+    () => indicadores.filter((indicador) => indicador.criterio_id === edicaoTipo.criterio_id),
+    [indicadores, edicaoTipo.criterio_id]
   );
 
   const tiposFiltrados = useMemo(
@@ -235,6 +235,13 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
       setNovoTipo((prev) => ({ ...prev, indicador_id: indicadoresDoTipo[0]?.id || 0 }));
     }
   }, [indicadoresDoTipo, novoTipo.indicador_id]);
+
+  useEffect(() => {
+    if (!tipoEdicao) return;
+    if (!indicadoresDoTipoEdicao.some((item) => item.id === edicaoTipo.indicador_id)) {
+      setEdicaoTipo((prev) => ({ ...prev, indicador_id: indicadoresDoTipoEdicao[0]?.id || 0 }));
+    }
+  }, [tipoEdicao, indicadoresDoTipoEdicao, edicaoTipo.indicador_id]);
 
   const sucesso = (msg: string) => {
     setMensagem(msg);
@@ -382,7 +389,6 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
         indicador_id: Number(novoTipo.indicador_id),
         nome: novoTipo.nome,
         descricao: novoTipo.descricao || null,
-        status_conformidade: novoTipo.status_conformidade,
       });
       setNovoTipo((prev) => ({ ...prev, nome: '', descricao: '' }));
       await carregarEstrutura();
@@ -402,7 +408,6 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
             ...prev,
             criterio_id: existenteMesmoNome.criterio_id as number,
             indicador_id: existenteMesmoNome.indicador_id as number,
-            status_conformidade: existenteMesmoNome.status_conformidade,
             nome: '',
             descricao: '',
           }));
@@ -519,20 +524,33 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
     }
   };
 
-  const atualizarStatusTipoEvidencia = async (tipo: TipoEvidencia, statusConformidade: StatusConformidade) => {
-    if (tipo.status_conformidade === statusConformidade) return;
+  const abrirEdicaoTipo = (tipo: TipoEvidencia) => {
+    setTipoEdicao(tipo);
+    setEdicaoTipo({
+      criterio_id: tipo.criterio_id || 0,
+      indicador_id: tipo.indicador_id || 0,
+      nome: tipo.nome,
+      descricao: tipo.descricao || '',
+    });
+  };
+
+  const salvarEdicaoTipo = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!tipoEdicao || !programaId) return;
     setErro('');
-    setTipoStatusAtualizandoId(tipo.id);
     try {
-      const { data } = await api.put<TipoEvidencia>(`/tipos-evidencia/${tipo.id}`, {
-        status_conformidade: statusConformidade,
+      await api.put(`/tipos-evidencia/${tipoEdicao.id}`, {
+        programa_id: programaId,
+        criterio_id: Number(edicaoTipo.criterio_id),
+        indicador_id: Number(edicaoTipo.indicador_id),
+        nome: edicaoTipo.nome,
+        descricao: edicaoTipo.descricao || null,
       });
-      setTipos((prev) => prev.map((item) => (item.id === tipo.id ? data : item)));
-      sucesso('Status de conformidade do tipo de evidência atualizado.');
+      setTipoEdicao(null);
+      await carregarEstrutura();
+      sucesso('Tipo de evidência atualizado.');
     } catch (err) {
       erroApi(err);
-    } finally {
-      setTipoStatusAtualizandoId(null);
     }
   };
 
@@ -842,19 +860,6 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
                 onChange={(e) => setNovoTipo((t) => ({ ...t, descricao: e.target.value }))}
               />
 
-              <select
-                value={novoTipo.status_conformidade}
-                onChange={(e) =>
-                  setNovoTipo((t) => ({ ...t, status_conformidade: e.target.value as StatusConformidade }))
-                }
-              >
-                {STATUS_CONFORMIDADE_OPTIONS.map((valor) => (
-                  <option key={valor} value={valor}>
-                    {STATUS_CONFORMIDADE_LABELS[valor]}
-                  </option>
-                ))}
-              </select>
-
               <button
                 type="submit"
                 disabled={!programaId || criterios.length === 0 || indicadoresDoTipo.length === 0}
@@ -886,27 +891,16 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
                 { title: 'Nome', render: (t) => t.nome },
                 { title: 'Descrição', render: (t) => t.descricao || '-' },
                 {
-                  title: 'Status de Conformidade',
-                  render: (t) => (
-                    <select
-                      value={t.status_conformidade}
-                      disabled={tipoStatusAtualizandoId === t.id}
-                      onChange={(e) => void atualizarStatusTipoEvidencia(t, e.target.value as StatusConformidade)}
-                    >
-                      {STATUS_CONFORMIDADE_OPTIONS.map((status) => (
-                        <option key={status} value={status}>
-                          {STATUS_CONFORMIDADE_LABELS[status]}
-                        </option>
-                      ))}
-                    </select>
-                  ),
-                },
-                {
                   title: 'Ações',
                   render: (t) => (
-                    <button type="button" onClick={() => remover(`/tipos-evidencia/${t.id}`, 'Tipo removido.')}>
-                      Excluir
-                    </button>
+                    <div className="row-actions cadastros-row-actions">
+                      <button type="button" onClick={() => abrirEdicaoTipo(t)}>
+                        Editar
+                      </button>
+                      <button type="button" onClick={() => remover(`/tipos-evidencia/${t.id}`, 'Tipo removido.')}>
+                        Excluir
+                      </button>
+                    </div>
                   ),
                 },
               ]}
@@ -1024,6 +1018,62 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
           </FormRow>
 
           <button type="submit">Salvar Alterações</button>
+        </form>
+      </Modal>
+
+      <Modal open={!!tipoEdicao} title="Editar Tipo de Evidência" onClose={() => setTipoEdicao(null)}>
+        <form className="grid gap-12" onSubmit={salvarEdicaoTipo}>
+          <FormRow label="Critério">
+            <select
+              value={edicaoTipo.criterio_id}
+              onChange={(e) => setEdicaoTipo((state) => ({ ...state, criterio_id: Number(e.target.value) }))}
+              required
+            >
+              {criterios.map((criterio) => (
+                <option key={criterio.id} value={criterio.id}>
+                  {criterio.codigo ? `${criterio.codigo} - ` : ''}
+                  {criterio.titulo}
+                </option>
+              ))}
+            </select>
+          </FormRow>
+
+          <FormRow label="Indicador">
+            <select
+              value={edicaoTipo.indicador_id}
+              onChange={(e) => setEdicaoTipo((state) => ({ ...state, indicador_id: Number(e.target.value) }))}
+              required
+            >
+              {indicadoresDoTipoEdicao.map((indicador) => (
+                <option key={indicador.id} value={indicador.id}>
+                  {indicador.codigo ? `${indicador.codigo} - ` : ''}
+                  {indicador.titulo}
+                </option>
+              ))}
+            </select>
+          </FormRow>
+
+          <FormRow label="Nome">
+            <input
+              value={edicaoTipo.nome}
+              onChange={(e) => setEdicaoTipo((state) => ({ ...state, nome: e.target.value }))}
+              required
+            />
+          </FormRow>
+
+          <FormRow label="Descrição">
+            <input
+              value={edicaoTipo.descricao}
+              onChange={(e) => setEdicaoTipo((state) => ({ ...state, descricao: e.target.value }))}
+            />
+          </FormRow>
+
+          <button
+            type="submit"
+            disabled={!edicaoTipo.criterio_id || !edicaoTipo.indicador_id || !edicaoTipo.nome.trim()}
+          >
+            Salvar Alterações
+          </button>
         </form>
       </Modal>
     </div>

@@ -94,6 +94,7 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
     if (!novoCriterioId) return indicadoresDisponiveis;
     return indicadoresDisponiveis.filter((item) => item.criterio_id === novoCriterioId);
   }, [indicadoresDisponiveis, novoCriterioId]);
+  const semIndicadoresDisponiveis = indicadoresDisponiveis.length === 0;
 
   const filtradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -179,7 +180,12 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
       await carregar();
       setMensagem('Status de conformidade atualizado.');
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao atualizar status da avaliação.');
+      const detalhe = err?.response?.data?.detail || 'Falha ao atualizar status da avaliação.';
+      setErro(detalhe);
+      if (err?.response?.status === 400) {
+        abrirEdicao(avaliacao);
+        setEdicaoStatus(statusConformidade);
+      }
     } finally {
       setAvaliacaoStatusAtualizandoId(null);
     }
@@ -199,25 +205,45 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
       <div className="card">
         <h3>Nova Avaliação</h3>
         <form className="grid four-col gap-12" onSubmit={criar}>
-          <select value={novoCriterioId} onChange={(e) => setNovoCriterioId(Number(e.target.value))} required>
-            {criteriosComIndicadorDisponivel.map((criterio) => (
-              <option key={criterio.id} value={criterio.id}>
-                {criterio.codigo ? `${criterio.codigo} - ` : ''}
-                {criterio.titulo}
-              </option>
-            ))}
+          <select
+            value={novoCriterioId}
+            disabled={semIndicadoresDisponiveis || criteriosComIndicadorDisponivel.length === 0}
+            onChange={(e) => setNovoCriterioId(Number(e.target.value))}
+          >
+            {criteriosComIndicadorDisponivel.length === 0 ? (
+              <option value={0}>Sem critérios disponíveis</option>
+            ) : (
+              criteriosComIndicadorDisponivel.map((criterio) => (
+                <option key={criterio.id} value={criterio.id}>
+                  {criterio.codigo ? `${criterio.codigo} - ` : ''}
+                  {criterio.titulo}
+                </option>
+              ))
+            )}
           </select>
 
-          <select value={novoIndicadorId} onChange={(e) => setNovoIndicadorId(Number(e.target.value))} required>
-            {indicadoresDoCriterioSelecionado.map((indicador) => (
-              <option key={indicador.id} value={indicador.id}>
-                {indicador.codigo ? `${indicador.codigo} - ` : ''}
-                {indicador.titulo}
-              </option>
-            ))}
+          <select
+            value={novoIndicadorId}
+            disabled={semIndicadoresDisponiveis || indicadoresDoCriterioSelecionado.length === 0}
+            onChange={(e) => setNovoIndicadorId(Number(e.target.value))}
+          >
+            {indicadoresDoCriterioSelecionado.length === 0 ? (
+              <option value={0}>Sem indicadores disponíveis</option>
+            ) : (
+              indicadoresDoCriterioSelecionado.map((indicador) => (
+                <option key={indicador.id} value={indicador.id}>
+                  {indicador.codigo ? `${indicador.codigo} - ` : ''}
+                  {indicador.titulo}
+                </option>
+              ))
+            )}
           </select>
 
-          <select value={novoStatus} onChange={(e) => setNovoStatus(e.target.value as StatusConformidade)}>
+          <select
+            value={novoStatus}
+            disabled={semIndicadoresDisponiveis}
+            onChange={(e) => setNovoStatus(e.target.value as StatusConformidade)}
+          >
             {STATUS_OPTIONS.map((status) => (
               <option key={status} value={status}>
                 {STATUS_CONFORMIDADE_LABELS[status]}
@@ -228,14 +254,15 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
           <input
             placeholder="Justificativa/Observações"
             value={novaObs}
+            disabled={semIndicadoresDisponiveis}
             onChange={(e) => setNovaObs(e.target.value)}
           />
 
-          <button type="submit" disabled={indicadoresDisponiveis.length === 0}>
+          <button type="submit" disabled={semIndicadoresDisponiveis}>
             Criar Avaliação
           </button>
         </form>
-        {indicadoresDisponiveis.length === 0 && (
+        {semIndicadoresDisponiveis && (
           <p className="muted-text">Todos os indicadores deste programa já possuem avaliação para esta auditoria.</p>
         )}
       </div>
