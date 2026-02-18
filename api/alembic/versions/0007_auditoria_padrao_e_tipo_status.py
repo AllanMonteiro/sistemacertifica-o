@@ -1,6 +1,6 @@
 ﻿"""auditoria padrao e status em tipo evidencia
 
-Revision ID: 0007_auditoria_padrao_e_tipo_status
+Revision ID: 0007_aud_padrao_tipo_status
 Revises: 0006_tipos_evidencia_vinculos
 Create Date: 2026-02-19 00:20:00
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '0007_auditoria_padrao_e_tipo_status'
+revision: str = '0007_aud_padrao_tipo_status'
 down_revision: Union[str, None] = '0006_tipos_evidencia_vinculos'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
