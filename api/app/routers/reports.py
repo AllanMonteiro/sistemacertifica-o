@@ -1,7 +1,7 @@
 ﻿from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import case, extract, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.rbac import require_roles
@@ -23,6 +23,7 @@ from app.schemas.fsc import (
     AvaliacaoSemEvidenciaOut,
     CronogramaGanttItem,
     DemandaOut,
+    MonitoramentoMensalItem,
     NcPorPrincipioItem,
     ResumoConformidadeCertificacaoItem,
     ResumoStatusItem,
@@ -36,6 +37,21 @@ STATUS_CRONOGRAMA = (
     StatusConformidadeEnum.nc_maior,
     StatusConformidadeEnum.oportunidade_melhoria,
 )
+
+NOMES_MESES = {
+    1: 'Janeiro',
+    2: 'Fevereiro',
+    3: 'Março',
+    4: 'Abril',
+    5: 'Maio',
+    6: 'Junho',
+    7: 'Julho',
+    8: 'Agosto',
+    9: 'Setembro',
+    10: 'Outubro',
+    11: 'Novembro',
+    12: 'Dezembro',
+}
 
 
 def _buscar_auditoria(db: Session, auditoria_id: int) -> AuditoriaAno:
@@ -316,3 +332,91 @@ def cronograma_nc(
             )
         )
     return resultado
+
+
+@router.get('/monitoramento-mensal', response_model=list[MonitoramentoMensalItem])
+def monitoramento_mensal(
+    programa_id: int = Query(...),
+    auditoria_id: int = Query(...),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(RoleEnum.ADMIN, RoleEnum.GESTOR, RoleEnum.AUDITOR, RoleEnum.RESPONSAVEL)),
+) -> list[MonitoramentoMensalItem]:
+    auditoria = _buscar_auditoria(db, auditoria_id)
+    if auditoria.programa_id != programa_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='A auditoria informada não pertence ao programa selecionado.',
+        )
+
+    principios_cadastrados = int(
+        db.scalar(select(func.count(Principio.id)).where(Principio.programa_id == programa_id)) or 0
+    )
+    criterios_cadastrados = int(
+        db.scalar(select(func.count(Criterio.id)).where(Criterio.programa_id == programa_id)) or 0
+    )
+
+    avaliacoes_mes_rows = db.execute(
+        select(extract('month', AvaliacaoIndicador.assessed_at).label('mes'), func.count(AvaliacaoIndicador.id))
+        .where(
+            AvaliacaoIndicador.programa_id == programa_id,
+            AvaliacaoIndicador.auditoria_ano_id == auditoria_id,
+        )
+        .group_by('mes')
+    ).all()
+    avaliacoes_por_mes = {int(row[0]): int(row[1] or 0) for row in avaliacoes_mes_rows}
+
+    principios_mes_rows = db.execute(
+        select(
+            extract('month', AvaliacaoIndicador.assessed_at).label('mes'),
+            func.count(func.distinct(Principio.id)),
+        )
+        .join(Indicador, Indicador.id == AvaliacaoIndicador.indicator_id)
+        .join(Criterio, Criterio.id == Indicador.criterio_id)
+        .join(Principio, Principio.id == Criterio.principio_id)
+        .where(
+            AvaliacaoIndicador.programa_id == programa_id,
+            AvaliacaoIndicador.auditoria_ano_id == auditoria_id,
+        )
+        .group_by('mes')
+    ).all()
+    principios_monitorados_por_mes = {int(row[0]): int(row[1] or 0) for row in principios_mes_rows}
+
+    criterios_mes_rows = db.execute(
+        select(
+            extract('month', AvaliacaoIndicador.assessed_at).label('mes'),
+            func.count(func.distinct(Criterio.id)),
+        )
+        .join(Indicador, Indicador.id == AvaliacaoIndicador.indicator_id)
+        .join(Criterio, Criterio.id == Indicador.criterio_id)
+        .where(
+            AvaliacaoIndicador.programa_id == programa_id,
+            AvaliacaoIndicador.auditoria_ano_id == auditoria_id,
+        )
+        .group_by('mes')
+    ).all()
+    criterios_monitorados_por_mes = {int(row[0]): int(row[1] or 0) for row in criterios_mes_rows}
+
+    evidencias_mes_rows = db.execute(
+        select(extract('month', Evidencia.created_at).label('mes'), func.count(Evidencia.id))
+        .join(AvaliacaoIndicador, AvaliacaoIndicador.id == Evidencia.avaliacao_id)
+        .where(
+            AvaliacaoIndicador.programa_id == programa_id,
+            AvaliacaoIndicador.auditoria_ano_id == auditoria_id,
+        )
+        .group_by('mes')
+    ).all()
+    evidencias_por_mes = {int(row[0]): int(row[1] or 0) for row in evidencias_mes_rows}
+
+    return [
+        MonitoramentoMensalItem(
+            mes=mes,
+            mes_nome=NOMES_MESES[mes],
+            principios_cadastrados=principios_cadastrados,
+            principios_monitorados=principios_monitorados_por_mes.get(mes, 0),
+            criterios_cadastrados=criterios_cadastrados,
+            criterios_monitorados=criterios_monitorados_por_mes.get(mes, 0),
+            avaliacoes_registradas=avaliacoes_por_mes.get(mes, 0),
+            evidencias_registradas=evidencias_por_mes.get(mes, 0),
+        )
+        for mes in range(1, 13)
+    ]

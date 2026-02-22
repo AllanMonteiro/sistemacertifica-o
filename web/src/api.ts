@@ -247,3 +247,14 @@ export interface CronogramaGanttItem {
   data_inicio: string;
   data_fim: string;
 }
+
+export interface MonitoramentoMensalItem {
+  mes: number;
+  mes_nome: string;
+  principios_cadastrados: number;
+  principios_monitorados: number;
+  criterios_cadastrados: number;
+  criterios_monitorados: number;
+  avaliacoes_registradas: number;
+  evidencias_registradas: number;
+}

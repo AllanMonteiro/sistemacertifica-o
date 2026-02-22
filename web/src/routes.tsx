@@ -4,11 +4,13 @@ import { Auditoria } from './api';
 import Avaliacoes from './pages/Avaliacoes';
 import Auditorias from './pages/Auditorias';
 import Cadastros from './pages/Cadastros';
+import Calendario from './pages/Calendario';
 import Configuracoes from './pages/Configuracoes';
 import Cronograma from './pages/Cronograma';
 import Dashboard from './pages/Dashboard';
 import Demandas from './pages/Demandas';
 import DetalheAvaliacao from './pages/DetalheAvaliacao';
+import Direcionadores from './pages/Direcionadores';
 import Login from './pages/Login';
 
 type Props = {
@@ -121,6 +123,24 @@ export default function AppRoutes({
         element={
           <ProtectedRoute token={token}>
             <Cronograma programaId={programaId} auditoriaId={auditoriaId} />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/calendario"
+        element={
+          <ProtectedRoute token={token}>
+            <Calendario programaId={programaId} auditoriaId={auditoriaId} />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/direcionadores"
+        element={
+          <ProtectedRoute token={token}>
+            <Direcionadores programaId={programaId} auditoriaId={auditoriaId} />
           </ProtectedRoute>
         }
       />

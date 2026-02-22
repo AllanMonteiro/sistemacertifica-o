@@ -249,45 +249,41 @@ export default function Cronograma({ programaId, auditoriaId }: Props) {
 
   return (
     <div className="grid gap-16">
-      <h2>Cronograma de Ajuste de Nao Conformidades</h2>
-
-      <div className="card">
-        <div className="cronograma-info-grid">
-          <div className="cronograma-info-item">
-            <span>Nome da empresa</span>
-            <strong>{nomeEmpresa}</strong>
-          </div>
-          <div className="cronograma-info-item">
-            <span>Inicio do projeto</span>
-            <strong>{escala ? formatDateBR(escala.minDate) : '-'}</strong>
-          </div>
-          <div className="cronograma-info-item">
-            <span>Semana de exibicao</span>
-            <div className="cronograma-semana-controls">
-              <select value={semanaExibicao} onChange={(e) => setSemanaExibicao(Number(e.target.value))}>
-                {Array.from({ length: totalSemanas }, (_, index) => (
-                  <option key={index + 1} value={index + 1}>
-                    Semana {index + 1}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="btn-secondary cronograma-btn-hoje"
-                onClick={irParaSemanaHoje}
-                disabled={!semanaHoje}
-              >
-                Hoje
-              </button>
-            </div>
-          </div>
-          <label className="cronograma-info-item checkbox-row">
+      <div className="card cronograma-toolbar">
+        <div className="cronograma-toolbar-meta">
+          <span>
+            <strong>Empresa:</strong> {nomeEmpresa}
+          </span>
+          <span>
+            <strong>Inicio:</strong> {escala ? formatDateBR(escala.minDate) : '-'}
+          </span>
+        </div>
+        <div className="cronograma-toolbar-filters">
+          <label className="cronograma-semana-inline">
+            <span>Semana:</span>
+            <select value={semanaExibicao} onChange={(e) => setSemanaExibicao(Number(e.target.value))}>
+              {Array.from({ length: totalSemanas }, (_, index) => (
+                <option key={index + 1} value={index + 1}>
+                  {index + 1}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="btn-secondary cronograma-btn-hoje"
+            onClick={irParaSemanaHoje}
+            disabled={!semanaHoje}
+          >
+            Hoje
+          </button>
+          <label className="checkbox-row cronograma-filter-check">
             <input
               type="checkbox"
               checked={incluirConcluidas}
               onChange={(e) => setIncluirConcluidas(e.target.checked)}
             />
-            <span>Incluir demandas concluidas</span>
+            <span>Concluidas</span>
           </label>
         </div>
       </div>

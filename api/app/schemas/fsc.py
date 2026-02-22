@@ -409,3 +409,14 @@ class CronogramaGanttItem(BaseModel):
     status_conformidade: StatusConformidadeEnum
     data_inicio: date
     data_fim: date
+
+
+class MonitoramentoMensalItem(BaseModel):
+    mes: int
+    mes_nome: str
+    principios_cadastrados: int
+    principios_monitorados: int
+    criterios_cadastrados: int
+    criterios_monitorados: int
+    avaliacoes_registradas: int
+    evidencias_registradas: int

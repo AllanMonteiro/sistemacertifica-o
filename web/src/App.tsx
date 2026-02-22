@@ -187,6 +187,12 @@ export default function App() {
                 <NavLink to="/cronograma" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
                   Cronograma
                 </NavLink>
+                <NavLink to="/calendario" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
+                  Calendario
+                </NavLink>
+                <NavLink to="/direcionadores" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
+                  Direcionadores
+                </NavLink>
                 <NavLink to="/configuracoes" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
                   Configurações
                 </NavLink>

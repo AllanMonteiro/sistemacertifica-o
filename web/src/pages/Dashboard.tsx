@@ -5,6 +5,7 @@ import {
   api,
   Auditoria,
   Demanda,
+  MonitoramentoMensalItem,
   ProgramaCertificacao,
   ResumoConformidadeCertificacaoItem,
   ResumoStatusItem,
@@ -50,6 +51,7 @@ export default function Dashboard({
   const navigate = useNavigate();
   const [resumo, setResumo] = useState<ResumoStatusItem[]>([]);
   const [demandasAtrasadas, setDemandasAtrasadas] = useState<Demanda[]>([]);
+  const [monitoramentoMensal, setMonitoramentoMensal] = useState<MonitoramentoMensalItem[]>([]);
   const [resumoCertificacaoAno, setResumoCertificacaoAno] = useState<ResumoConformidadeCertificacaoItem[]>([]);
   const [programas, setProgramas] = useState<ProgramaCertificacao[]>([]);
   const [anosDisponiveis, setAnosDisponiveis] = useState<number[]>([]);
@@ -79,22 +81,29 @@ export default function Dashboard({
   }, []);
 
   useEffect(() => {
-    if (!auditoriaId) return;
+    if (!auditoriaId || !programaId) {
+      setMonitoramentoMensal([]);
+      return;
+    }
     const carregarResumoAuditoria = async () => {
       try {
         setErro('');
-        const [resumoResp, demandasResp] = await Promise.all([
+        const [resumoResp, demandasResp, monitoramentoResp] = await Promise.all([
           api.get<ResumoStatusItem[]>('/reports/resumo-status', { params: { auditoria_id: auditoriaId } }),
           api.get<Demanda[]>('/reports/demandas-atrasadas', { params: { auditoria_id: auditoriaId } }),
+          api.get<MonitoramentoMensalItem[]>('/reports/monitoramento-mensal', {
+            params: { programa_id: programaId, auditoria_id: auditoriaId },
+          }),
         ]);
         setResumo(resumoResp.data);
         setDemandasAtrasadas(demandasResp.data);
+        setMonitoramentoMensal(monitoramentoResp.data);
       } catch (err: any) {
         setErro(err?.response?.data?.detail || 'Falha ao carregar dashboard.');
       }
     };
     void carregarResumoAuditoria();
-  }, [auditoriaId]);
+  }, [auditoriaId, programaId]);
 
   useEffect(() => {
     if (!anoRelatorio) return;
@@ -167,6 +176,27 @@ export default function Dashboard({
                 { title: 'Data Fim', render: (d) => d.due_date || '-' },
                 { title: 'Status', render: (d) => STATUS_ANDAMENTO_LABELS[d.status_andamento] },
                 { title: 'Responsavel ID', render: (d) => d.responsavel_id || '-' },
+              ]}
+            />
+          </div>
+
+          <div className="card">
+            <h3>Monitoramento Mensal (Principios, Criterios e Evidencias)</h3>
+            <Table
+              rows={monitoramentoMensal}
+              emptyText="Sem dados de monitoramento mensal para esta auditoria."
+              columns={[
+                { title: 'Mes', render: (item) => item.mes_nome },
+                {
+                  title: 'Principios Monitorados',
+                  render: (item) => `${item.principios_monitorados}/${item.principios_cadastrados}`,
+                },
+                {
+                  title: 'Criterios Monitorados',
+                  render: (item) => `${item.criterios_monitorados}/${item.criterios_cadastrados}`,
+                },
+                { title: 'Avaliacoes no Mes', render: (item) => item.avaliacoes_registradas },
+                { title: 'Evidencias no Mes', render: (item) => item.evidencias_registradas },
               ]}
             />
           </div>
