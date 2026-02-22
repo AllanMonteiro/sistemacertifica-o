@@ -88,16 +88,25 @@ export default function Dashboard({
     const carregarResumoAuditoria = async () => {
       try {
         setErro('');
-        const [resumoResp, demandasResp, monitoramentoResp] = await Promise.all([
+        const [resumoResp, demandasResp] = await Promise.all([
           api.get<ResumoStatusItem[]>('/reports/resumo-status', { params: { auditoria_id: auditoriaId } }),
           api.get<Demanda[]>('/reports/demandas-atrasadas', { params: { auditoria_id: auditoriaId } }),
-          api.get<MonitoramentoMensalItem[]>('/reports/monitoramento-mensal', {
-            params: { programa_id: programaId, auditoria_id: auditoriaId },
-          }),
         ]);
         setResumo(resumoResp.data);
         setDemandasAtrasadas(demandasResp.data);
-        setMonitoramentoMensal(monitoramentoResp.data);
+        try {
+          const monitoramentoResp = await api.get<MonitoramentoMensalItem[]>('/reports/monitoramento-mensal', {
+            params: { programa_id: programaId, auditoria_id: auditoriaId },
+          });
+          setMonitoramentoMensal(monitoramentoResp.data);
+        } catch (err: any) {
+          if (err?.response?.status === 404) {
+            // Ambientes com API antiga podem não ter este relatório.
+            setMonitoramentoMensal([]);
+          } else {
+            setErro(err?.response?.data?.detail || 'Falha ao carregar monitoramento mensal.');
+          }
+        }
       } catch (err: any) {
         setErro(err?.response?.data?.detail || 'Falha ao carregar dashboard.');
       }
