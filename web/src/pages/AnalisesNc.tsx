@@ -20,6 +20,11 @@ type Props = {
 
 const STATUS_ANALISE_LIST: StatusAnaliseNc[] = ['aberta', 'em_analise', 'concluida'];
 const STATUS_AVALIACAO_NC = ['nc_menor', 'nc_maior', 'oportunidade_melhoria'];
+const CLASSE_STATUS_ANALISE: Record<StatusAnaliseNc, string> = {
+  aberta: 'analise-status-aberta',
+  em_analise: 'analise-status-em-analise',
+  concluida: 'analise-status-concluida',
+};
 
 type FormAnalise = {
   avaliacao_id: number | '';
@@ -322,7 +327,7 @@ export default function AnalisesNc({ programaId, auditoriaId }: Props) {
   }
 
   return (
-    <div className="grid gap-16">
+    <div className="analise-nc-page grid gap-16">
       <h2>5 Porques e Matriz SWOT para Nao Conformidades</h2>
 
       {erro && <div className="error">{erro}</div>}
@@ -332,7 +337,7 @@ export default function AnalisesNc({ programaId, auditoriaId }: Props) {
         <h3>{analiseEditandoId ? 'Editar Analise NC' : 'Nova Analise NC'}</h3>
         {podeGerirAnalises ? (
           <form className="grid gap-12" onSubmit={salvarAnalise}>
-            <div className="grid four-col gap-12">
+            <div className="analise-meta-grid grid gap-12">
               <label className="form-row">
                 <span>Avaliacao NC/OM</span>
                 <select
@@ -367,7 +372,7 @@ export default function AnalisesNc({ programaId, auditoriaId }: Props) {
                 </select>
               </label>
 
-              <label className="form-row">
+              <label className={`form-row analise-status-field ${CLASSE_STATUS_ANALISE[form.status_analise]}`}>
                 <span>Status da Analise</span>
                 <select
                   value={form.status_analise}
@@ -416,7 +421,7 @@ export default function AnalisesNc({ programaId, auditoriaId }: Props) {
               />
             </label>
 
-            <div className="grid five-col gap-12">
+            <div className="analise-porques-grid grid gap-12">
               <label className="form-row">
                 <span>1º Porquê</span>
                 <textarea rows={2} value={form.porque_1} onChange={(e) => setForm((prev) => ({ ...prev, porque_1: e.target.value }))} />
@@ -439,7 +444,7 @@ export default function AnalisesNc({ programaId, auditoriaId }: Props) {
               </label>
             </div>
 
-            <div className="grid two-col gap-12">
+            <div className="analise-dupla-grid grid gap-12">
               <label className="form-row">
                 <span>Causa Raiz</span>
                 <textarea
@@ -458,20 +463,20 @@ export default function AnalisesNc({ programaId, auditoriaId }: Props) {
               </label>
             </div>
 
-            <div className="grid two-col gap-12">
-              <label className="form-row">
+            <div className="analise-swot-grid grid gap-12">
+              <label className="form-row swot-card swot-forcas">
                 <span>SWOT - Forças</span>
                 <textarea rows={3} value={form.swot_forcas} onChange={(e) => setForm((prev) => ({ ...prev, swot_forcas: e.target.value }))} />
               </label>
-              <label className="form-row">
+              <label className="form-row swot-card swot-fraquezas">
                 <span>SWOT - Fraquezas</span>
                 <textarea rows={3} value={form.swot_fraquezas} onChange={(e) => setForm((prev) => ({ ...prev, swot_fraquezas: e.target.value }))} />
               </label>
-              <label className="form-row">
+              <label className="form-row swot-card swot-oportunidades">
                 <span>SWOT - Oportunidades</span>
                 <textarea rows={3} value={form.swot_oportunidades} onChange={(e) => setForm((prev) => ({ ...prev, swot_oportunidades: e.target.value }))} />
               </label>
-              <label className="form-row">
+              <label className="form-row swot-card swot-ameacas">
                 <span>SWOT - Ameaças</span>
                 <textarea rows={3} value={form.swot_ameacas} onChange={(e) => setForm((prev) => ({ ...prev, swot_ameacas: e.target.value }))} />
               </label>
@@ -528,23 +533,33 @@ export default function AnalisesNc({ programaId, auditoriaId }: Props) {
           rows={analises}
           emptyText="Nenhuma analise encontrada."
           columns={[
-            { title: 'Problema', render: (item) => item.titulo_problema },
+            {
+              title: 'Problema',
+              render: (item) => (
+                <div className={`analise-problema-cell ${CLASSE_STATUS_ANALISE[item.status_analise]}`}>
+                  <strong>{item.titulo_problema}</strong>
+                  <small>{STATUS_ANALISE_NC_LABELS[item.status_analise]}</small>
+                </div>
+              ),
+            },
             { title: 'Avaliacao', render: (item) => descricaoAvaliacao(item.avaliacao_id) },
             { title: 'Demanda', render: (item) => (item.demanda_id ? demandasMap.get(item.demanda_id)?.titulo || item.demanda_id : '-') },
             {
               title: 'Status',
               render: (item) => (
-                <select
-                  value={item.status_analise}
-                  onChange={(e) => void patchStatus(item, e.target.value as StatusAnaliseNc)}
-                  disabled={!podeAtualizarStatus}
-                >
-                  {STATUS_ANALISE_LIST.map((statusItem) => (
-                    <option key={statusItem} value={statusItem}>
-                      {STATUS_ANALISE_NC_LABELS[statusItem]}
-                    </option>
-                  ))}
-                </select>
+                <div className={`analise-status-editor ${CLASSE_STATUS_ANALISE[item.status_analise]}`}>
+                  <select
+                    value={item.status_analise}
+                    onChange={(e) => void patchStatus(item, e.target.value as StatusAnaliseNc)}
+                    disabled={!podeAtualizarStatus}
+                  >
+                    {STATUS_ANALISE_LIST.map((statusItem) => (
+                      <option key={statusItem} value={statusItem}>
+                        {STATUS_ANALISE_NC_LABELS[statusItem]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               ),
             },
             { title: 'Responsavel', render: (item) => (item.responsavel_id ? usuariosMap.get(item.responsavel_id)?.nome || item.responsavel_id : '-') },
@@ -576,12 +591,25 @@ export default function AnalisesNc({ programaId, auditoriaId }: Props) {
       {analiseSelecionada && (
         <div className="card">
           <h3>Detalhamento da Análise Selecionada</h3>
-          <div className="grid two-col gap-12">
+
+          <div className={`analise-detalhe-hero ${CLASSE_STATUS_ANALISE[analiseSelecionada.status_analise]}`}>
+            <div className="analise-detalhe-head">
+              <span className="analise-detalhe-tag">Status da Analise</span>
+              <strong>{STATUS_ANALISE_NC_LABELS[analiseSelecionada.status_analise]}</strong>
+            </div>
+            <p>{analiseSelecionada.titulo_problema}</p>
+          </div>
+
+          <div className="analise-dupla-grid analise-detalhe-meta grid gap-12">
             <div>
-              <strong>Problema:</strong> {analiseSelecionada.titulo_problema}
+              <strong>Avaliacao:</strong> {descricaoAvaliacao(analiseSelecionada.avaliacao_id)}
             </div>
             <div>
-              <strong>Status:</strong> {STATUS_ANALISE_NC_LABELS[analiseSelecionada.status_analise]}
+              <strong>Responsavel:</strong>{' '}
+              {analiseSelecionada.responsavel_id ? usuariosMap.get(analiseSelecionada.responsavel_id)?.nome || analiseSelecionada.responsavel_id : '-'}
+            </div>
+            <div>
+              <strong>Contexto:</strong> {analiseSelecionada.contexto || '-'}
             </div>
             <div>
               <strong>Causa Raiz:</strong> {analiseSelecionada.causa_raiz || '-'}
@@ -607,18 +635,24 @@ export default function AnalisesNc({ programaId, auditoriaId }: Props) {
           />
 
           <h4>Matriz SWOT</h4>
-          <Table
-            rows={[
-              { tipo: 'Forças', valor: analiseSelecionada.swot_forcas || '-' },
-              { tipo: 'Fraquezas', valor: analiseSelecionada.swot_fraquezas || '-' },
-              { tipo: 'Oportunidades', valor: analiseSelecionada.swot_oportunidades || '-' },
-              { tipo: 'Ameaças', valor: analiseSelecionada.swot_ameacas || '-' },
-            ]}
-            columns={[
-              { title: 'Categoria', render: (item) => item.tipo },
-              { title: 'Descrição', render: (item) => item.valor },
-            ]}
-          />
+          <div className="analise-swot-grid grid gap-12">
+            <div className="swot-card swot-forcas">
+              <span>Forcas</span>
+              <p>{analiseSelecionada.swot_forcas || '-'}</p>
+            </div>
+            <div className="swot-card swot-fraquezas">
+              <span>Fraquezas</span>
+              <p>{analiseSelecionada.swot_fraquezas || '-'}</p>
+            </div>
+            <div className="swot-card swot-oportunidades">
+              <span>Oportunidades</span>
+              <p>{analiseSelecionada.swot_oportunidades || '-'}</p>
+            </div>
+            <div className="swot-card swot-ameacas">
+              <span>Ameacas</span>
+              <p>{analiseSelecionada.swot_ameacas || '-'}</p>
+            </div>
+          </div>
 
           <h4>Rastreabilidade (Log de Auditoria)</h4>
           <Table
@@ -635,3 +669,4 @@ export default function AnalisesNc({ programaId, auditoriaId }: Props) {
     </div>
   );
 }
+

@@ -1174,6 +1174,191 @@ button:disabled {
   height: 100%;
 }
 
+.analise-nc-page {
+  min-width: 0;
+}
+
+.analise-nc-page .card {
+  overflow: hidden;
+}
+
+.analise-nc-page .form-row {
+  min-width: 0;
+}
+
+.analise-nc-page input,
+.analise-nc-page select,
+.analise-nc-page textarea {
+  width: 100%;
+  min-width: 0;
+}
+
+.analise-meta-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+}
+
+.analise-porques-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.analise-dupla-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.analise-swot-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.analise-status-field {
+  padding: 10px;
+  border: 1px solid #c8d8e7;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.analise-status-field span {
+  font-weight: 700;
+}
+
+.analise-status-field select {
+  font-weight: 700;
+}
+
+.analise-status-aberta {
+  background: #fff4df;
+  border-color: #efbe66;
+  color: #865300;
+}
+
+.analise-status-em-analise {
+  background: #e8f4ff;
+  border-color: #87bfe8;
+  color: #0b5d98;
+}
+
+.analise-status-concluida {
+  background: #e7f8ed;
+  border-color: #6ec794;
+  color: #0b8a43;
+}
+
+.analise-problema-cell {
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.analise-problema-cell strong {
+  line-height: 1.35;
+}
+
+.analise-problema-cell small {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.analise-status-editor {
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+}
+
+.analise-status-editor select {
+  background: transparent;
+  border-color: rgba(17, 50, 77, 0.25);
+  font-weight: 700;
+}
+
+.analise-detalhe-hero {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.analise-detalhe-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.analise-detalhe-tag {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.analise-detalhe-hero p {
+  margin: 8px 0 0;
+  line-height: 1.35;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.analise-detalhe-meta {
+  margin-bottom: 10px;
+}
+
+.analise-detalhe-meta > div {
+  border: 1px solid #d5e4f1;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 10px;
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.swot-card {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.swot-card span {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.swot-card p {
+  margin: 0;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.swot-forcas {
+  background: #e9f7ef;
+  border-color: #a9ddbf;
+}
+
+.swot-fraquezas {
+  background: #fdeaea;
+  border-color: #e6b3b3;
+}
+
+.swot-oportunidades {
+  background: #e8f4ff;
+  border-color: #b7d8f2;
+}
+
+.swot-ameacas {
+  background: #fff5df;
+  border-color: #efd5a2;
+}
+
 .between {
   display: flex;
   justify-content: space-between;
@@ -1399,6 +1584,14 @@ button:disabled {
     grid-template-columns: 560px auto;
   }
 
+  .analise-meta-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .analise-porques-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .detalhe-demanda-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1538,6 +1731,15 @@ button:disabled {
     font-size: 12px;
   }
 
+  .analise-porques-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .analise-dupla-grid,
+  .analise-swot-grid {
+    grid-template-columns: 1fr;
+  }
+
   .detalhe-upload-form {
     grid-template-columns: 1fr;
   }
@@ -1609,6 +1811,11 @@ button:disabled {
 
   .table {
     min-width: 560px;
+  }
+
+  .analise-meta-grid,
+  .analise-porques-grid {
+    grid-template-columns: 1fr;
   }
 
   .gantt-sheet-row {
@@ -1688,6 +1895,10 @@ button:disabled {
 
   .drivers-summary {
     grid-template-columns: 1fr;
+  }
+
+  .analise-detalhe-hero p {
+    font-size: 14px;
   }
 
   .gantt-sheet-row {
