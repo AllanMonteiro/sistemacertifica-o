@@ -211,59 +211,64 @@ export default function App() {
             <div className="main-shell">
               <header className="topbar">
                 <div className="topbar-actions">
-                  <label className="form-row compact">
-                    <span>Programa</span>
-                    <select
-                      value={programaId ?? ''}
-                      onChange={(e) => {
-                        const value = e.target.value ? Number(e.target.value) : null;
-                        setProgramaId(value);
-                        if (value) {
-                          localStorage.setItem('programa_id', String(value));
-                        } else {
-                          localStorage.removeItem('programa_id');
-                        }
-                        setAuditoriaId(null);
-                        localStorage.removeItem('auditoria_id');
-                        void carregarAuditorias(value);
-                      }}
-                    >
-                      <option value="">Selecione</option>
-                      {programas.map((programa) => (
-                        <option key={programa.id} value={programa.id}>
-                          {programa.nome}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="form-row compact">
-                    <span>Auditoria (Ano)</span>
-                    <select
-                      value={auditoriaId ?? ''}
-                      onChange={(e) => {
-                        const value = e.target.value ? Number(e.target.value) : null;
-                        setAuditoriaId(value);
-                        if (value) {
-                          localStorage.setItem('auditoria_id', String(value));
-                        } else {
+                  <div className="topbar-filtros">
+                    <label className="form-row compact">
+                      <span>Programa</span>
+                      <select
+                        value={programaId ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value ? Number(e.target.value) : null;
+                          setProgramaId(value);
+                          if (value) {
+                            localStorage.setItem('programa_id', String(value));
+                          } else {
+                            localStorage.removeItem('programa_id');
+                          }
+                          setAuditoriaId(null);
                           localStorage.removeItem('auditoria_id');
-                        }
-                      }}
-                    >
-                      <option value="">Selecione</option>
-                      {auditorias.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          Auditoria {a.year}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                          void carregarAuditorias(value);
+                        }}
+                      >
+                        <option value="">Selecione</option>
+                        {programas.map((programa) => (
+                          <option key={programa.id} value={programa.id}>
+                            {programa.nome}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="form-row compact">
+                      <span>Auditoria (Ano)</span>
+                      <select
+                        value={auditoriaId ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value ? Number(e.target.value) : null;
+                          setAuditoriaId(value);
+                          if (value) {
+                            localStorage.setItem('auditoria_id', String(value));
+                          } else {
+                            localStorage.removeItem('auditoria_id');
+                          }
+                        }}
+                      >
+                        <option value="">Selecione</option>
+                        {auditorias.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            Auditoria {a.year}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
 
                   <div className="user-block">
                     <span>{usuario ? `${usuario.nome} (${usuario.role})` : 'Usuário'}</span>
-                    <button type="button" onClick={onLogout}>
-                      Sair
+                    <button type="button" className="btn-secondary btn-icon" onClick={onLogout}>
+                      <span className="btn-icon-glyph" aria-hidden>
+                        ↩
+                      </span>
+                      <span>Sair</span>
                     </button>
                   </div>
                 </div>
