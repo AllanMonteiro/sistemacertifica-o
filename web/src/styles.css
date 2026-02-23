@@ -7,8 +7,12 @@
   --muted: #4f6780;
   --accent: #0f70b7;
   --accent-strong: #0b5d98;
+  --accent-soft: #e7f3ff;
   --danger: #b83636;
   --success: #0aad4e;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-soft: 0 8px 22px rgba(17, 49, 73, 0.07);
 }
 
 * {
@@ -60,6 +64,7 @@ a {
 .sidebar-menu {
   display: grid;
   gap: 10px;
+  padding-right: 2px;
 }
 
 .sidebar-link {
@@ -79,6 +84,7 @@ a {
     border-color 0.2s ease,
     color 0.2s ease,
     box-shadow 0.2s ease;
+  min-height: 44px;
 }
 
 .sidebar-link::before {
@@ -184,10 +190,29 @@ a {
   justify-content: flex-end;
 }
 
+.topbar-actions .form-row.compact {
+  width: min(240px, 100%);
+}
+
+.topbar-actions .form-row.compact span {
+  font-weight: 700;
+  font-size: 12px;
+}
+
 .user-block {
   display: flex;
   gap: 8px;
   align-items: center;
+  background: #f5faff;
+  border: 1px solid #cce0f1;
+  border-radius: 999px;
+  padding: 4px 4px 4px 10px;
+}
+
+.user-block span {
+  color: #315678;
+  font-weight: 700;
+  font-size: 13px;
 }
 
 .page-container {
@@ -195,6 +220,8 @@ a {
   max-width: none;
   margin: 0;
   padding: 20px 24px;
+  display: grid;
+  gap: 14px;
 }
 
 .page-center {
@@ -206,8 +233,30 @@ a {
 .card {
   background: var(--surface);
   border: 1px solid #d5e4f1;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  color: #0f3d66;
+}
+
+h2 {
+  font-size: clamp(24px, 2.5vw, 40px);
+  letter-spacing: -0.02em;
+}
+
+h3 {
+  font-size: clamp(20px, 1.8vw, 30px);
+}
+
+h4 {
+  font-size: clamp(16px, 1.4vw, 22px);
 }
 
 .login-card {
@@ -268,7 +317,7 @@ select,
 textarea,
 button {
   border: 1px solid #d5e4f1;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 8px 10px;
   font: inherit;
   max-width: 100%;
@@ -278,15 +327,41 @@ textarea {
   resize: vertical;
 }
 
+input,
+select,
+textarea {
+  width: 100%;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #7fb4de;
+  box-shadow: 0 0 0 3px rgba(15, 112, 183, 0.14);
+  background: #fcfeff;
+}
+
 button {
   background: var(--accent);
   color: white;
   border-color: var(--accent);
   cursor: pointer;
+  font-weight: 700;
+  transition:
+    background-color 0.16s ease,
+    transform 0.12s ease,
+    box-shadow 0.16s ease;
 }
 
 button:hover {
   background: var(--accent-strong);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(12, 61, 103, 0.18);
 }
 
 button:disabled {
@@ -295,7 +370,7 @@ button:disabled {
 }
 
 .btn-secondary {
-  background: #eff7ff;
+  background: var(--accent-soft);
   color: var(--text);
   border-color: var(--border);
 }
@@ -427,6 +502,18 @@ button:disabled {
 .table th {
   color: var(--muted);
   font-size: 13px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f3f8fe;
+}
+
+.table tbody tr:nth-child(even) {
+  background: #fbfdff;
+}
+
+.table tbody tr:hover {
+  background: #f2f8ff;
 }
 
 .table-link-button {
@@ -460,6 +547,15 @@ button:disabled {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid #d5e4f1;
+  background: #f7fbff;
+}
+
+.filters-row .form-row.compact {
+  flex: 1 1 220px;
+  min-width: 180px;
 }
 
 .table-wrapper {
@@ -1370,6 +1466,12 @@ button:disabled {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.row-actions button {
+  white-space: nowrap;
+  min-height: 36px;
 }
 
 .cadastros-row-actions {
@@ -1536,8 +1638,9 @@ button:disabled {
   width: min(720px, 96vw);
   background: var(--surface);
   border: 1px solid #d5e4f1;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 16px;
+  box-shadow: 0 16px 40px rgba(16, 40, 61, 0.25);
 }
 
 .modal-header {
@@ -1637,6 +1740,10 @@ button:disabled {
 
   .topbar-actions {
     justify-content: flex-start;
+  }
+
+  .filters-row .form-row.compact {
+    flex: 1 1 100%;
   }
 
   .two-col,
@@ -1796,8 +1903,10 @@ button:disabled {
 
   .user-block {
     width: 100%;
-    justify-content: space-between;
+    justify-content: center;
     flex-wrap: wrap;
+    border-radius: 12px;
+    padding: 8px;
   }
 
   .between {
@@ -1807,6 +1916,11 @@ button:disabled {
 
   .status-card strong {
     font-size: 20px;
+  }
+
+  button:hover {
+    transform: none;
+    box-shadow: none;
   }
 
   .table {
@@ -1861,6 +1975,11 @@ button:disabled {
 
   .card {
     padding: 12px;
+  }
+
+  .filters-row {
+    padding: 8px;
+    gap: 8px;
   }
 
   .status-card h3 {
