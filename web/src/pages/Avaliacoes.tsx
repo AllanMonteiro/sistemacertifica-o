@@ -5,6 +5,7 @@ import {
   api,
   Avaliacao,
   Criterio,
+  Evidencia,
   Indicador,
   STATUS_CONFORMIDADE_LABELS,
   StatusConformidade,
@@ -30,6 +31,7 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
   const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
   const [criterios, setCriterios] = useState<Criterio[]>([]);
   const [indicadores, setIndicadores] = useState<Indicador[]>([]);
+  const [evidencias, setEvidencias] = useState<Evidencia[]>([]);
   const [statusFiltro, setStatusFiltro] = useState<string>('');
   const [busca, setBusca] = useState('');
   const [erro, setErro] = useState('');
@@ -48,7 +50,7 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
     if (!auditoriaId || !programaId) return;
     setErro('');
     try {
-      const [aResp, cResp, iResp] = await Promise.all([
+      const [aResp, cResp, iResp, eResp] = await Promise.all([
         api.get<Avaliacao[]>('/avaliacoes', {
           params: {
             programa_id: programaId,
@@ -58,12 +60,14 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
         }),
         api.get<Criterio[]>('/criterios', { params: { programa_id: programaId } }),
         api.get<Indicador[]>('/indicadores', { params: { programa_id: programaId } }),
+        api.get<Evidencia[]>('/evidencias', { params: { programa_id: programaId, auditoria_id: auditoriaId } }),
       ]);
       const indicadoresAvaliados = new Set(aResp.data.map((item) => item.indicator_id));
       const indicadoresDisponiveis = iResp.data.filter((item) => !indicadoresAvaliados.has(item.id));
       setAvaliacoes(aResp.data);
       setCriterios(cResp.data);
       setIndicadores(iResp.data);
+      setEvidencias(eResp.data);
       if (!indicadoresDisponiveis.some((item) => item.id === novoIndicadorId)) {
         setNovoIndicadorId(indicadoresDisponiveis[0]?.id || 0);
       }
@@ -82,6 +86,16 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
 
   const criterioMap = useMemo(() => new Map(criterios.map((c) => [c.id, c])), [criterios]);
   const indicadorMap = useMemo(() => new Map(indicadores.map((i) => [i.id, i])), [indicadores]);
+  const pendenciasPorAvaliacao = useMemo(() => {
+    const mapa = new Map<number, { total: number; pendentes: number }>();
+    for (const evidencia of evidencias) {
+      const atual = mapa.get(evidencia.avaliacao_id) || { total: 0, pendentes: 0 };
+      atual.total += 1;
+      if (evidencia.nao_conforme) atual.pendentes += 1;
+      mapa.set(evidencia.avaliacao_id, atual);
+    }
+    return mapa;
+  }, [evidencias]);
   const indicadoresDisponiveis = useMemo(() => {
     const avaliados = new Set(avaliacoes.map((item) => item.indicator_id));
     return indicadores.filter((item) => !avaliados.has(item.id));
@@ -313,6 +327,7 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
               title: 'Status de Conformidade',
               render: (a) => (
                 <select
+                  className="avaliacao-status-select"
                   value={a.status_conformidade}
                   disabled={avaliacaoStatusAtualizandoId === a.id}
                   onChange={(e) => void atualizarStatusDireto(a, e.target.value as StatusConformidade)}
@@ -324,6 +339,23 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
                   ))}
                 </select>
               ),
+            },
+            {
+              title: 'Pendência de Evidência',
+              render: (a) => {
+                const info = pendenciasPorAvaliacao.get(a.id) || { total: 0, pendentes: 0 };
+                if (info.total === 0) {
+                  return <span className="badge-pendencia-avaliacao sem-evidencia">Sem evidência</span>;
+                }
+                if (info.pendentes > 0) {
+                  return (
+                    <span className="badge-pendencia-avaliacao com-pendencia">
+                      {info.pendentes} pendente(s) de {info.total}
+                    </span>
+                  );
+                }
+                return <span className="badge-pendencia-avaliacao sem-pendencia">Sem pendência</span>;
+              },
             },
             { title: 'Justificativa', render: (a) => a.observacoes || '-' },
             {

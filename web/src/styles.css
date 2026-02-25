@@ -546,6 +546,40 @@ button:disabled {
   border-color: #efb4b4;
 }
 
+.avaliacao-status-select {
+  min-width: 230px;
+}
+
+.badge-pendencia-avaliacao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.badge-pendencia-avaliacao.sem-evidencia {
+  background: #eef2f6;
+  color: #53657a;
+  border-color: #cfd7df;
+}
+
+.badge-pendencia-avaliacao.sem-pendencia {
+  background: #e8f7ef;
+  color: #0a8f41;
+  border-color: #9ed7b7;
+}
+
+.badge-pendencia-avaliacao.com-pendencia {
+  background: #ffeaea;
+  color: #b83636;
+  border-color: #efb4b4;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -2087,6 +2121,10 @@ button:disabled {
 
   .table {
     min-width: 500px;
+  }
+
+  .avaliacao-status-select {
+    min-width: 170px;
   }
 
   .calendar-grid {
