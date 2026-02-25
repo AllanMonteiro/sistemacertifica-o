@@ -292,10 +292,10 @@ export default function DetalheAvaliacao() {
             { title: 'URL/Caminho/Texto', render: (e) => e.url_or_path },
             { title: 'Observações', render: (e) => e.observacoes || '-' },
             {
-              title: 'Conformidade da Evidência',
+              title: 'Pendência da Evidência',
               render: (e) => (
                 <span className={`badge-conformidade-evidencia ${e.nao_conforme ? 'nao-conforme' : 'conforme'}`}>
-                  {e.nao_conforme ? 'Não Conforme' : 'Conforme'}
+                  {e.nao_conforme ? 'Com Pendência' : 'Sem Pendência'}
                 </span>
               ),
             },
@@ -346,13 +346,13 @@ export default function DetalheAvaliacao() {
             </label>
 
             <label className="form-row">
-              <span>Conformidade da Evidência</span>
+              <span>Pendência da Evidência</span>
               <select
                 value={evidenciaNaoConforme ? 'nao_conforme' : 'conforme'}
                 onChange={(e) => setEvidenciaNaoConforme(e.target.value === 'nao_conforme')}
               >
-                <option value="conforme">Conforme</option>
-                <option value="nao_conforme">Não Conforme</option>
+                <option value="conforme">Sem Pendência (Conforme)</option>
+                <option value="nao_conforme">Com Pendência (Não Conforme)</option>
               </select>
             </label>
           </div>
