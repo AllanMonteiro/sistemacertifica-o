@@ -304,6 +304,7 @@ class EvidenciaCreate(BaseModel):
     tipo_evidencia_id: int | None = None
     kind: EvidenciaKindEnum
     url_or_path: str = Field(min_length=1)
+    nao_conforme: bool = False
     observacoes: str | None = None
 
 
@@ -316,6 +317,7 @@ class EvidenciaOut(BaseModel):
     tipo_evidencia_id: int | None
     kind: EvidenciaKindEnum
     url_or_path: str
+    nao_conforme: bool
     observacoes: str | None
     created_by: int
     created_at: datetime

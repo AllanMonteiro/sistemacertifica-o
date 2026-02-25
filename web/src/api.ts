@@ -133,6 +133,7 @@ export interface Evidencia {
   tipo_evidencia_id?: number | null;
   kind: KindEvidencia;
   url_or_path: string;
+  nao_conforme: boolean;
   observacoes?: string | null;
   created_by: number;
   created_at: string;

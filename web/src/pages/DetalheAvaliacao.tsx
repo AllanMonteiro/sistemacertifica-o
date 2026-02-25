@@ -42,6 +42,7 @@ export default function DetalheAvaliacao() {
   const [tipoEvidenciaId, setTipoEvidenciaId] = useState<number | ''>('');
   const [kind, setKind] = useState<'link' | 'texto'>('link');
   const [urlOuTexto, setUrlOuTexto] = useState('');
+  const [evidenciaNaoConforme, setEvidenciaNaoConforme] = useState(false);
   const [obsEvidencia, setObsEvidencia] = useState('');
   const [arquivo, setArquivo] = useState<File | null>(null);
 
@@ -136,9 +137,11 @@ export default function DetalheAvaliacao() {
         tipo_evidencia_id: tipoEvidenciaId || null,
         kind,
         url_or_path: urlOuTexto,
+        nao_conforme: evidenciaNaoConforme,
         observacoes: obsEvidencia || null,
       });
       setUrlOuTexto('');
+      setEvidenciaNaoConforme(false);
       setObsEvidencia('');
       await carregar();
       sucesso('Evidência adicionada.');
@@ -160,6 +163,7 @@ export default function DetalheAvaliacao() {
       if (tipoEvidenciaId) {
         formData.append('tipo_evidencia_id', String(tipoEvidenciaId));
       }
+      formData.append('nao_conforme', evidenciaNaoConforme ? 'true' : 'false');
       if (obsEvidencia) {
         formData.append('observacoes', obsEvidencia);
       }
@@ -168,6 +172,7 @@ export default function DetalheAvaliacao() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setArquivo(null);
+      setEvidenciaNaoConforme(false);
       setObsEvidencia('');
       await carregar();
       sucesso('Upload de evidência concluído.');
@@ -287,6 +292,14 @@ export default function DetalheAvaliacao() {
             { title: 'URL/Caminho/Texto', render: (e) => e.url_or_path },
             { title: 'Observações', render: (e) => e.observacoes || '-' },
             {
+              title: 'Conformidade da Evidência',
+              render: (e) => (
+                <span className={`badge-conformidade-evidencia ${e.nao_conforme ? 'nao-conforme' : 'conforme'}`}>
+                  {e.nao_conforme ? 'Não Conforme' : 'Conforme'}
+                </span>
+              ),
+            },
+            {
               title: 'Documentos',
               render: (e) => (
                 <button type="button" onClick={() => navigate(`/documentos?evidencia_id=${e.id}`)}>
@@ -298,7 +311,7 @@ export default function DetalheAvaliacao() {
         />
 
         <form className="detalhe-evidencia-form" onSubmit={criarEvidenciaTextoLink}>
-          <div className="grid three-col gap-12">
+          <div className="grid four-col gap-12">
             <label className="form-row">
               <span>Tipo de Evidência</span>
               <select
@@ -330,6 +343,17 @@ export default function DetalheAvaliacao() {
                 onChange={(e) => setUrlOuTexto(e.target.value)}
                 required
               />
+            </label>
+
+            <label className="form-row">
+              <span>Conformidade da Evidência</span>
+              <select
+                value={evidenciaNaoConforme ? 'nao_conforme' : 'conforme'}
+                onChange={(e) => setEvidenciaNaoConforme(e.target.value === 'nao_conforme')}
+              >
+                <option value="conforme">Conforme</option>
+                <option value="nao_conforme">Não Conforme</option>
+              </select>
             </label>
           </div>
 

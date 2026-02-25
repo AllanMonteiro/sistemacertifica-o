@@ -233,6 +233,7 @@ class Evidencia(Base):
     tipo_evidencia_id: Mapped[int | None] = mapped_column(ForeignKey('tipos_evidencia.id', ondelete='SET NULL'), nullable=True)
     kind: Mapped[EvidenciaKindEnum] = mapped_column(Enum(EvidenciaKindEnum, name='evidencia_kind_enum', native_enum=False), nullable=False)
     url_or_path: Mapped[str] = mapped_column(Text, nullable=False)
+    nao_conforme: Mapped[bool] = mapped_column(nullable=False, default=False, server_default='false')
     observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by: Mapped[int] = mapped_column(ForeignKey('usuarios.id', ondelete='RESTRICT'), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

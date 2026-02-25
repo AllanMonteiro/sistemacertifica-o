@@ -522,6 +522,30 @@ button:disabled {
   color: #4e5d53;
 }
 
+.badge-conformidade-evidencia {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.badge-conformidade-evidencia.conforme {
+  background: #e8f7ef;
+  color: #0a8f41;
+  border-color: #9ed7b7;
+}
+
+.badge-conformidade-evidencia.nao-conforme {
+  background: #ffeaea;
+  color: #b83636;
+  border-color: #efb4b4;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
