@@ -107,7 +107,7 @@ export default function Auditorias({
         organismo_certificador: editOrganismo || null,
         padrao_utilizado: editPadrao || null,
         escopo: editEscopo || null,
-        senha_sistema: senhaEdicao,
+        senha_sistema: senhaEdicao.trim(),
       });
       await refreshAuditorias();
       fecharEdicao();
@@ -140,7 +140,7 @@ export default function Auditorias({
     try {
       await api.delete(`/auditorias/${auditoriaExclusao.id}`, {
         data: {
-          senha_sistema: senhaExclusao,
+          senha_sistema: senhaExclusao.trim(),
         },
       });
       if (auditoriaId === auditoriaExclusao.id) {
@@ -286,12 +286,12 @@ export default function Auditorias({
           </label>
 
           <label className="form-row">
-            <span>Senha do sistema (confirmação)</span>
+            <span>Senha de login do usuário atual (confirmação)</span>
             <input
               type="password"
               value={senhaEdicao}
               onChange={(e) => setSenhaEdicao(e.target.value)}
-              placeholder="Digite sua senha atual"
+              placeholder="Digite a mesma senha usada no login"
               required
             />
           </label>
@@ -311,12 +311,12 @@ export default function Auditorias({
             Confirma a exclusão da auditoria <strong>{auditoriaExclusao?.year}</strong>?
           </p>
           <label className="form-row">
-            <span>Senha do sistema (confirmação)</span>
+            <span>Senha de login do usuário atual (confirmação)</span>
             <input
               type="password"
               value={senhaExclusao}
               onChange={(e) => setSenhaExclusao(e.target.value)}
-              placeholder="Digite sua senha atual"
+              placeholder="Digite a mesma senha usada no login"
               required
             />
           </label>

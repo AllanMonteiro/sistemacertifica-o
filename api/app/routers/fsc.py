@@ -510,12 +510,19 @@ def _validar_senha_sistema(senha_sistema: str | None, current_user: User) -> Non
     if not senha_sistema:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Informe a senha do sistema para confirmar esta ação.',
+            detail='Informe a senha de login do usuário atual para confirmar esta ação.',
         )
-    if not verify_password(senha_sistema, current_user.password_hash):
+    senha_digitada = senha_sistema
+    senha_sem_espacos = senha_sistema.strip()
+    senha_valida = verify_password(senha_digitada, current_user.password_hash)
+    if not senha_valida and senha_sem_espacos != senha_digitada:
+        # Tolerância para espaços acidentais no início/fim ao digitar no modal.
+        senha_valida = verify_password(senha_sem_espacos, current_user.password_hash)
+
+    if not senha_valida:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Senha do sistema inválida.',
+            detail='Senha inválida. Use a mesma senha do login do usuário atual.',
         )
 
 
@@ -1657,6 +1664,11 @@ def criar_evidencia(
             detail='Para kind "arquivo", utilize o endpoint /api/evidencias/upload.',
         )
     avaliacao = _buscar_avaliacao(db, payload.avaliacao_id)
+    if payload.nao_conforme and not (payload.observacoes or '').strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Informe observações para evidência marcada como não conforme.',
+        )
     if payload.tipo_evidencia_id is not None:
         tipo = _buscar_tipo_evidencia(db, payload.tipo_evidencia_id)
         _validar_tipo_evidencia_compativel_com_avaliacao(db, tipo, avaliacao)
@@ -1684,12 +1696,18 @@ def criar_evidencia(
 def upload_evidencia(
     avaliacao_id: int = Form(...),
     tipo_evidencia_id: int | None = Form(default=None),
+    nao_conforme: bool = Form(default=False),
     observacoes: str | None = Form(default=None),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(RoleEnum.ADMIN, RoleEnum.GESTOR, RoleEnum.AUDITOR, RoleEnum.RESPONSAVEL)),
 ) -> EvidenciaOut:
     avaliacao = _buscar_avaliacao(db, avaliacao_id)
+    if nao_conforme and not (observacoes or '').strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Informe observações para evidência marcada como não conforme.',
+        )
     if tipo_evidencia_id is not None:
         tipo = _buscar_tipo_evidencia(db, tipo_evidencia_id)
         _validar_tipo_evidencia_compativel_com_avaliacao(db, tipo, avaliacao)
@@ -1704,6 +1722,7 @@ def upload_evidencia(
         tipo_evidencia_id=tipo_evidencia_id,
         kind=EvidenciaKindEnum.arquivo,
         url_or_path=url_or_path,
+        nao_conforme=nao_conforme,
         observacoes=observacoes,
         created_by=current_user.id,
     )
