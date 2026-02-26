@@ -1,6 +1,11 @@
-﻿import { FormEvent, useState } from 'react';
+﻿import {
+  FormEvent,
+  useState } from 'react';
 
-import { api, Auditoria } from '../api';
+import { api,
+  Auditoria,
+  formatApiError,
+} from '../api';
 import Modal from '../components/Modal';
 import Table from '../components/Table';
 
@@ -58,7 +63,7 @@ export default function Auditorias({
       await refreshAuditorias();
       setMensagem('Auditoria criada com sucesso.');
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao criar auditoria.');
+      setErro(formatApiError(err, 'Falha ao criar auditoria.'));
     }
   };
 
@@ -70,7 +75,7 @@ export default function Auditorias({
       const { data } = await api.post<{ mensagem: string }>(`/auditorias/${auditoriaId}/gerar-avaliacoes`);
       setMensagem(data.mensagem);
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao gerar avaliações.');
+      setErro(formatApiError(err, 'Falha ao gerar avaliações.'));
     }
   };
 
@@ -113,7 +118,7 @@ export default function Auditorias({
       fecharEdicao();
       setMensagem('Auditoria atualizada com sucesso.');
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao atualizar auditoria.');
+      setErro(formatApiError(err, 'Falha ao atualizar auditoria.'));
     }
   };
 
@@ -150,7 +155,7 @@ export default function Auditorias({
       fecharExclusao();
       setMensagem('Auditoria excluída com sucesso.');
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao excluir auditoria.');
+      setErro(formatApiError(err, 'Falha ao excluir auditoria.'));
     }
   };
 

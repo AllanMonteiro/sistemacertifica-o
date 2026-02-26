@@ -1,7 +1,12 @@
-﻿import { FormEvent, useState } from 'react';
+﻿import {
+  FormEvent,
+  useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { api, LoginResponse } from '../api';
+import { api,
+  LoginResponse,
+  formatApiError,
+} from '../api';
 
 type Props = {
   onLogin: (token: string) => Promise<void>;
@@ -24,7 +29,7 @@ export default function Login({ onLogin }: Props) {
       await onLogin(data.access_token);
       navigate('/');
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha no login.');
+      setErro(formatApiError(err, 'Falha no login.'));
     } finally {
       setLoading(false);
     }

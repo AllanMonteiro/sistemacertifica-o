@@ -1,5 +1,9 @@
 ﻿
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+  FormEvent,
+  useEffect,
+  useMemo,
+  useState } from 'react';
 
 import {
   api,
@@ -9,6 +13,7 @@ import {
   Principio,
   ProgramaCertificacao,
   TipoEvidencia,
+  formatApiError,
 } from '../api';
 import FormRow from '../components/FormRow';
 import Modal from '../components/Modal';
@@ -202,7 +207,7 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
 
       setNovoTipo((prev) => ({ ...prev, criterio_id: criterioTipoBase, indicador_id: indicadorTipoBase }));
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao carregar cadastros.');
+      setErro(formatApiError(err, 'Falha ao carregar cadastros.'));
     }
   };
 
@@ -252,7 +257,7 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
   };
 
   const erroApi = (err: any) => {
-    setErro(err?.response?.data?.detail || 'Erro na operação.');
+    setErro(formatApiError(err, 'Erro na operação.'));
   };
 
   const alterarCertificacao = async (codigo: string) => {
@@ -294,7 +299,7 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
       await carregarEstrutura();
       sucesso('Etapa 1 concluída: auditoria cadastrada e selecionada.');
     } catch (err: any) {
-      const detail = String(err?.response?.data?.detail || '');
+      const detail = formatApiError(err, '');
       if (detail.toLowerCase().includes('já existe auditoria')) {
         await selecionarContextoRelatorio(programa.id, etapaAuditoria.year);
         await carregarEstrutura();
@@ -397,7 +402,7 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
       await carregarEstrutura();
       sucesso('Tipo de evidência criado.');
     } catch (err: any) {
-      const detail = err?.response?.data?.detail;
+      const detail = formatApiError(err, '');
       if (typeof detail === 'string' && detail.toLowerCase().includes('já existe tipo de evidência')) {
         const { data } = await api.get<TipoEvidencia[]>('/tipos-evidencia', {
           params: { programa_id: programaId },

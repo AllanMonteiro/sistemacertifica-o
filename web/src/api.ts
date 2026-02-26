@@ -14,6 +14,55 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+export function formatApiError(error: any, fallback = 'Erro na operação.'): string {
+  const detail = error?.response?.data?.detail;
+
+  if (typeof detail === 'string' && detail.trim()) {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    const texto = detail
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object') {
+          const msg = typeof item.msg === 'string' ? item.msg : '';
+          const loc = Array.isArray(item.loc) ? item.loc.join('.') : '';
+          if (msg && loc) return `${loc}: ${msg}`;
+          if (msg) return msg;
+          try {
+            return JSON.stringify(item);
+          } catch {
+            return String(item);
+          }
+        }
+        return String(item);
+      })
+      .filter(Boolean)
+      .join(' | ');
+
+    if (texto) return texto;
+  }
+
+  if (detail && typeof detail === 'object') {
+    if (typeof detail.msg === 'string' && detail.msg.trim()) {
+      return detail.msg;
+    }
+    try {
+      const texto = JSON.stringify(detail);
+      if (texto) return texto;
+    } catch {
+      // ignore
+    }
+  }
+
+  if (typeof error?.message === 'string' && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export type Role = 'ADMIN' | 'GESTOR' | 'AUDITOR' | 'RESPONSAVEL';
 
 export interface Usuario {

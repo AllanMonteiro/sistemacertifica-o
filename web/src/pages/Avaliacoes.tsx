@@ -1,4 +1,8 @@
-﻿import { FormEvent, useEffect, useMemo, useState } from 'react';
+﻿import {
+  FormEvent,
+  useEffect,
+  useMemo,
+  useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -9,6 +13,7 @@ import {
   Indicador,
   STATUS_CONFORMIDADE_LABELS,
   StatusConformidade,
+  formatApiError,
 } from '../api';
 import Modal from '../components/Modal';
 import Table from '../components/Table';
@@ -75,7 +80,7 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
         setNovoCriterioId(indicadoresDisponiveis[0]?.criterio_id || cResp.data[0]?.id || 0);
       }
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao carregar avaliações.');
+      setErro(formatApiError(err, 'Falha ao carregar avaliações.'));
     }
   };
 
@@ -147,7 +152,7 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
       await carregar();
       setMensagem('Avaliação criada com sucesso.');
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao criar avaliação.');
+      setErro(formatApiError(err, 'Falha ao criar avaliação.'));
     }
   };
 
@@ -177,7 +182,7 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
       fecharEdicao();
       setMensagem('Avaliação atualizada com sucesso.');
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao atualizar avaliação.');
+      setErro(formatApiError(err, 'Falha ao atualizar avaliação.'));
     }
   };
 
@@ -194,7 +199,7 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
       await carregar();
       setMensagem('Status de conformidade atualizado.');
     } catch (err: any) {
-      const detalhe = err?.response?.data?.detail || 'Falha ao atualizar status da avaliação.';
+      const detalhe = formatApiError(err, 'Falha ao atualizar status da avaliação.');
       setErro(detalhe);
       if (err?.response?.status === 400) {
         abrirEdicao(avaliacao);

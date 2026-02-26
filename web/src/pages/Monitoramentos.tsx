@@ -1,4 +1,8 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+  FormEvent,
+  useEffect,
+  useMemo,
+  useState } from 'react';
 
 import {
   api,
@@ -13,6 +17,7 @@ import {
   StatusMonitoramentoCriterio,
   StatusNotificacaoMonitoramento,
   Usuario,
+  formatApiError,
 } from '../api';
 import Modal from '../components/Modal';
 import Table from '../components/Table';
@@ -138,7 +143,7 @@ export default function Monitoramentos({ programaId, auditoriaId }: Props) {
   };
 
   const tratarErro = (err: any, fallback: string) => {
-    setErro(err?.response?.data?.detail || fallback);
+    setErro(formatApiError(err, fallback));
   };
 
   const carregarBase = async () => {

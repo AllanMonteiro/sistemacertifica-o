@@ -1,4 +1,7 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import {
+  useEffect,
+  useMemo,
+  useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import {
@@ -9,6 +12,7 @@ import {
   StatusConformidade,
   StatusAndamento,
   Usuario,
+  formatApiError,
 } from '../api';
 import Table from '../components/Table';
 
@@ -92,7 +96,7 @@ export default function Demandas({ programaId, auditoriaId }: Props) {
       setDemandas(dResp.data);
       setUsuarios(uResp.data);
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao carregar demandas.');
+      setErro(formatApiError(err, 'Falha ao carregar demandas.'));
     }
   };
 
@@ -109,7 +113,7 @@ export default function Demandas({ programaId, auditoriaId }: Props) {
       await carregar();
       setMensagem('Andamento da demanda atualizado.');
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao atualizar demanda.');
+      setErro(formatApiError(err, 'Falha ao atualizar demanda.'));
     }
   };
 

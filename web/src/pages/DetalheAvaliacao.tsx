@@ -1,5 +1,9 @@
-﻿import { FormEvent, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+﻿import {
+  FormEvent,
+  useEffect,
+  useState } from 'react';
+import { useNavigate,
+  useParams } from 'react-router-dom';
 
 import {
   api,
@@ -12,6 +16,7 @@ import {
   StatusConformidade,
   TipoEvidencia,
   Usuario,
+  formatApiError,
 } from '../api';
 import Modal from '../components/Modal';
 import Table from '../components/Table';
@@ -95,7 +100,7 @@ export default function DetalheAvaliacao() {
         setUsuarios([]);
       }
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao carregar detalhe da avaliação.');
+      setErro(formatApiError(err, 'Falha ao carregar detalhe da avaliação.'));
     }
   };
 
@@ -110,7 +115,7 @@ export default function DetalheAvaliacao() {
   };
 
   const erroApi = (err: any) => {
-    setErro(err?.response?.data?.detail || 'Erro na operação.');
+    setErro(formatApiError(err, 'Erro na operação.'));
   };
 
   const atualizarAvaliacao = async (e: FormEvent) => {

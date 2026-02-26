@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -11,6 +14,7 @@ import {
   STATUS_ANDAMENTO_LABELS,
   STATUS_CONFORMIDADE_LABELS,
   StatusConformidade,
+  formatApiError,
 } from '../api';
 
 type Props = {
@@ -96,7 +100,7 @@ export default function Direcionadores({ programaId, auditoriaId }: Props) {
         setPrincipios(principiosResp.data);
         setDemandas(demandasResp.data);
       } catch (err: any) {
-        setErro(err?.response?.data?.detail || 'Falha ao carregar diagrama de direcionadores.');
+        setErro(formatApiError(err, 'Falha ao carregar diagrama de direcionadores.'));
       }
     };
     void carregar();

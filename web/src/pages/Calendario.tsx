@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -9,6 +12,7 @@ import {
   STATUS_ANDAMENTO_LABELS,
   STATUS_CONFORMIDADE_LABELS,
   StatusConformidade,
+  formatApiError,
 } from '../api';
 
 type Props = {
@@ -106,7 +110,7 @@ export default function Calendario({ programaId, auditoriaId }: Props) {
         setDemandas(demandasResp.data);
         setAvaliacoes(avaliacoesResp.data);
       } catch (err: any) {
-        setErro(err?.response?.data?.detail || 'Falha ao carregar calendario.');
+        setErro(formatApiError(err, 'Falha ao carregar calendario.'));
       }
     };
     void carregar();

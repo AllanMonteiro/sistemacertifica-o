@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState } from 'react';
 
 import {
   api,
@@ -8,6 +11,7 @@ import {
   STATUS_ANDAMENTO_LABELS,
   STATUS_CONFORMIDADE_LABELS,
   StatusConformidade,
+  formatApiError,
 } from '../api';
 
 type Props = {
@@ -145,7 +149,7 @@ export default function Cronograma({ programaId, auditoriaId }: Props) {
         });
         setItens(data.sort(ordenarPorInicio));
       } catch (err: any) {
-        setErro(err?.response?.data?.detail || 'Falha ao carregar cronograma.');
+        setErro(formatApiError(err, 'Falha ao carregar cronograma.'));
       }
     };
     void carregar();

@@ -1,4 +1,7 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import {
+  useEffect,
+  useMemo,
+  useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -12,6 +15,7 @@ import {
   STATUS_ANDAMENTO_LABELS,
   STATUS_CONFORMIDADE_LABELS,
   StatusConformidade,
+  formatApiError,
 } from '../api';
 import Table from '../components/Table';
 
@@ -104,11 +108,11 @@ export default function Dashboard({
             // Ambientes com API antiga podem não ter este relatório.
             setMonitoramentoMensal([]);
           } else {
-            setErro(err?.response?.data?.detail || 'Falha ao carregar monitoramento mensal.');
+            setErro(formatApiError(err, 'Falha ao carregar monitoramento mensal.'));
           }
         }
       } catch (err: any) {
-        setErro(err?.response?.data?.detail || 'Falha ao carregar dashboard.');
+        setErro(formatApiError(err, 'Falha ao carregar dashboard.'));
       }
     };
     void carregarResumoAuditoria();
@@ -129,7 +133,7 @@ export default function Dashboard({
         );
         setResumoCertificacaoAno(data);
       } catch (err: any) {
-        setErro(err?.response?.data?.detail || 'Falha ao carregar relatorio por certificacao.');
+        setErro(formatApiError(err, 'Falha ao carregar relatorio por certificacao.'));
       }
     };
     void carregarResumoCertificacaoAno();

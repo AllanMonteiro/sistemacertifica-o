@@ -1,6 +1,13 @@
-import { FormEvent, useEffect, useState } from 'react';
+import {
+  FormEvent,
+  useEffect,
+  useState } from 'react';
 
-import { api, ConfiguracaoSistema, Usuario } from '../api';
+import { api,
+  ConfiguracaoSistema,
+  Usuario,
+  formatApiError,
+} from '../api';
 
 type Props = {
   refreshConfiguracaoNoHeader: () => Promise<void>;
@@ -28,7 +35,7 @@ export default function Configuracoes({ refreshConfiguracaoNoHeader }: Props) {
       setNomeEmpresa(configResp.data.nome_empresa);
       setUsuario(usuarioResp.data);
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao carregar configuracoes.');
+      setErro(formatApiError(err, 'Falha ao carregar configuracoes.'));
     }
   };
 
@@ -46,7 +53,7 @@ export default function Configuracoes({ refreshConfiguracaoNoHeader }: Props) {
       await refreshConfiguracaoNoHeader();
       setMensagem('Nome da empresa atualizado com sucesso.');
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao atualizar nome da empresa.');
+      setErro(formatApiError(err, 'Falha ao atualizar nome da empresa.'));
     }
   };
 
@@ -69,7 +76,7 @@ export default function Configuracoes({ refreshConfiguracaoNoHeader }: Props) {
       await refreshConfiguracaoNoHeader();
       setMensagem('Logo da empresa atualizada com sucesso.');
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao atualizar logo da empresa.');
+      setErro(formatApiError(err, 'Falha ao atualizar logo da empresa.'));
     }
   };
 
@@ -82,7 +89,7 @@ export default function Configuracoes({ refreshConfiguracaoNoHeader }: Props) {
       await refreshConfiguracaoNoHeader();
       setMensagem('Logo removida com sucesso.');
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao remover logo.');
+      setErro(formatApiError(err, 'Falha ao remover logo.'));
     }
   };
 
@@ -104,7 +111,7 @@ export default function Configuracoes({ refreshConfiguracaoNoHeader }: Props) {
       setConfirmacaoNovaSenha('');
       setMensagem('Senha de login alterada com sucesso.');
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao alterar senha.');
+      setErro(formatApiError(err, 'Falha ao alterar senha.'));
     }
   };
 

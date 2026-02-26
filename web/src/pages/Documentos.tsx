@@ -1,4 +1,8 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+  FormEvent,
+  useEffect,
+  useMemo,
+  useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import {
@@ -12,6 +16,7 @@ import {
   StatusDocumento,
   TipoEvidencia,
   Usuario,
+  formatApiError,
 } from '../api';
 import Modal from '../components/Modal';
 import Table from '../components/Table';
@@ -162,7 +167,7 @@ export default function Documentos({ programaId, auditoriaId }: Props) {
         setLogs([]);
       }
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || 'Falha ao carregar documentos da evidência.');
+      setErro(formatApiError(err, 'Falha ao carregar documentos da evidência.'));
     }
   };
 
@@ -186,7 +191,7 @@ export default function Documentos({ programaId, auditoriaId }: Props) {
   };
 
   const erroApi = (err: any, fallback: string) => {
-    setErro(err?.response?.data?.detail || fallback);
+    setErro(formatApiError(err, fallback));
   };
 
   const criarDocumento = async (e: FormEvent) => {
