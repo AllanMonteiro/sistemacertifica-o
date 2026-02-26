@@ -1,8 +1,68 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter, NavLink } from 'react-router-dom';
 
 import { api, Auditoria, ConfiguracaoSistema, ProgramaCertificacao, Usuario } from './api';
 import AppRoutes from './routes';
+
+type AppErrorBoundaryProps = {
+  children: React.ReactNode;
+  onResetSession: () => void;
+};
+
+type AppErrorBoundaryState = {
+  hasError: boolean;
+  message: string;
+};
+
+class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, AppErrorBoundaryState> {
+  constructor(props: AppErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, message: '' };
+  }
+
+  static getDerivedStateFromError(error: Error): AppErrorBoundaryState {
+    return {
+      hasError: true,
+      message: error?.message || 'Erro inesperado ao renderizar a interface.',
+    };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('Erro de renderização na aplicação:', error);
+  }
+
+  private limparSessaoERedirecionar = () => {
+    this.setState({ hasError: false, message: '' });
+    this.props.onResetSession();
+    window.location.href = '/login';
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <main className="page-container">
+          <div className="card grid gap-12">
+            <h3>Falha ao carregar a tela</h3>
+            <p className="muted-text">
+              Ocorreu um erro ao montar a interface. Limpe a sessão e entre novamente.
+            </p>
+            <p className="error">{this.state.message}</p>
+            <div className="row-actions">
+              <button type="button" onClick={this.limparSessaoERedirecionar}>
+                Limpar sessão e voltar ao login
+              </button>
+              <button type="button" className="btn-secondary" onClick={() => window.location.reload()}>
+                Recarregar página
+              </button>
+            </div>
+          </div>
+        </main>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export default function App() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
@@ -19,6 +79,19 @@ export default function App() {
     const stored = localStorage.getItem('auditoria_id');
     return stored ? Number(stored) : null;
   });
+
+  const limparSessao = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('programa_id');
+    localStorage.removeItem('auditoria_id');
+    setToken(null);
+    setUsuario(null);
+    setConfiguracao(null);
+    setProgramas([]);
+    setAuditorias([]);
+    setProgramaId(null);
+    setAuditoriaId(null);
+  };
 
   const carregarProgramas = async (): Promise<ProgramaCertificacao[]> => {
     const { data } = await api.get<ProgramaCertificacao[]>('/programas-certificacao');
@@ -98,16 +171,7 @@ export default function App() {
 
       await carregarAuditorias(programaSelecionado);
     } catch {
-      localStorage.removeItem('token');
-      localStorage.removeItem('programa_id');
-      localStorage.removeItem('auditoria_id');
-      setToken(null);
-      setUsuario(null);
-      setConfiguracao(null);
-      setProgramas([]);
-      setAuditorias([]);
-      setProgramaId(null);
-      setAuditoriaId(null);
+      limparSessao();
     }
   };
 
@@ -122,16 +186,7 @@ export default function App() {
   };
 
   const onLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('programa_id');
-    localStorage.removeItem('auditoria_id');
-    setToken(null);
-    setUsuario(null);
-    setConfiguracao(null);
-    setProgramas([]);
-    setAuditorias([]);
-    setProgramaId(null);
-    setAuditoriaId(null);
+    limparSessao();
   };
 
   const rotas = (
@@ -150,137 +205,148 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="app-shell">
-        {token ? (
-          <div className="layout-auth">
-            <aside className="sidebar">
-              <div className="brand">
-                <div className="brand-top">
-                  {configuracao?.logo_preview_url && (
-                    <img
-                      src={configuracao.logo_preview_url}
-                      alt="Logo da empresa"
-                      className="brand-logo"
-                    />
-                  )}
-                  <strong>{configuracao?.nome_empresa || 'Sistema de Certificações'}</strong>
+      <AppErrorBoundary onResetSession={limparSessao}>
+        <div className="app-shell">
+          {token ? (
+            <div className="layout-auth">
+              <aside className="sidebar">
+                <div className="brand">
+                  <div className="brand-top">
+                    {configuracao?.logo_preview_url && (
+                      <img
+                        src={configuracao.logo_preview_url}
+                        alt="Logo da empresa"
+                        className="brand-logo"
+                      />
+                    )}
+                    <strong>{configuracao?.nome_empresa || 'Sistema de Certificações'}</strong>
+                  </div>
+                  <small>Conformidade, auditoria e rastreabilidade</small>
                 </div>
-                <small>Conformidade, auditoria e rastreabilidade</small>
-              </div>
 
-              <nav className="sidebar-menu">
-                <NavLink to="/" end className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-                  Dashboard
-                </NavLink>
-                <NavLink to="/auditorias" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-                  Auditorias
-                </NavLink>
-                <NavLink to="/cadastros" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-                  Cadastros
-                </NavLink>
-                <NavLink to="/avaliacoes" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-                  Avaliações
-                </NavLink>
-                <NavLink to="/documentos" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-                  Documentos
-                </NavLink>
-                <NavLink to="/demandas" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-                  Demandas
-                </NavLink>
-                <NavLink to="/monitoramentos" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-                  Monitoramentos
-                </NavLink>
-                <NavLink to="/analises-nc" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-                  Analises NC
-                </NavLink>
-                <NavLink to="/cronograma" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-                  Cronograma
-                </NavLink>
-                <NavLink to="/calendario" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-                  Calendario
-                </NavLink>
-                <NavLink to="/direcionadores" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-                  Direcionadores
-                </NavLink>
-                <NavLink to="/configuracoes" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-                  Configurações
-                </NavLink>
-              </nav>
-            </aside>
+                <nav className="sidebar-menu">
+                  <NavLink to="/" end className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
+                    Dashboard
+                  </NavLink>
+                  <NavLink to="/auditorias" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
+                    Auditorias
+                  </NavLink>
+                  <NavLink to="/cadastros" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
+                    Cadastros
+                  </NavLink>
+                  <NavLink to="/avaliacoes" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
+                    Avaliações
+                  </NavLink>
+                  <NavLink to="/documentos" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
+                    Documentos
+                  </NavLink>
+                  <NavLink to="/demandas" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
+                    Demandas
+                  </NavLink>
+                  <NavLink
+                    to="/monitoramentos"
+                    className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+                  >
+                    Monitoramentos
+                  </NavLink>
+                  <NavLink to="/analises-nc" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
+                    Analises NC
+                  </NavLink>
+                  <NavLink to="/cronograma" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
+                    Cronograma
+                  </NavLink>
+                  <NavLink to="/calendario" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
+                    Calendario
+                  </NavLink>
+                  <NavLink
+                    to="/direcionadores"
+                    className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+                  >
+                    Direcionadores
+                  </NavLink>
+                  <NavLink
+                    to="/configuracoes"
+                    className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+                  >
+                    Configurações
+                  </NavLink>
+                </nav>
+              </aside>
 
-            <div className="main-shell">
-              <header className="topbar">
-                <div className="topbar-actions">
-                  <div className="topbar-filtros">
-                    <label className="form-row compact">
-                      <span>Programa</span>
-                      <select
-                        value={programaId ?? ''}
-                        onChange={(e) => {
-                          const value = e.target.value ? Number(e.target.value) : null;
-                          setProgramaId(value);
-                          if (value) {
-                            localStorage.setItem('programa_id', String(value));
-                          } else {
-                            localStorage.removeItem('programa_id');
-                          }
-                          setAuditoriaId(null);
-                          localStorage.removeItem('auditoria_id');
-                          void carregarAuditorias(value);
-                        }}
-                      >
-                        <option value="">Selecione</option>
-                        {programas.map((programa) => (
-                          <option key={programa.id} value={programa.id}>
-                            {programa.nome}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className="form-row compact">
-                      <span>Auditoria (Ano)</span>
-                      <select
-                        value={auditoriaId ?? ''}
-                        onChange={(e) => {
-                          const value = e.target.value ? Number(e.target.value) : null;
-                          setAuditoriaId(value);
-                          if (value) {
-                            localStorage.setItem('auditoria_id', String(value));
-                          } else {
+              <div className="main-shell">
+                <header className="topbar">
+                  <div className="topbar-actions">
+                    <div className="topbar-filtros">
+                      <label className="form-row compact">
+                        <span>Programa</span>
+                        <select
+                          value={programaId ?? ''}
+                          onChange={(e) => {
+                            const value = e.target.value ? Number(e.target.value) : null;
+                            setProgramaId(value);
+                            if (value) {
+                              localStorage.setItem('programa_id', String(value));
+                            } else {
+                              localStorage.removeItem('programa_id');
+                            }
+                            setAuditoriaId(null);
                             localStorage.removeItem('auditoria_id');
-                          }
-                        }}
-                      >
-                        <option value="">Selecione</option>
-                        {auditorias.map((a) => (
-                          <option key={a.id} value={a.id}>
-                            Auditoria {a.year}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
+                            void carregarAuditorias(value);
+                          }}
+                        >
+                          <option value="">Selecione</option>
+                          {programas.map((programa) => (
+                            <option key={programa.id} value={programa.id}>
+                              {programa.nome}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
 
-                  <div className="user-block">
-                    <span>{usuario ? `${usuario.nome} (${usuario.role})` : 'Usuário'}</span>
-                    <button type="button" className="btn-secondary btn-icon" onClick={onLogout}>
-                      <span className="btn-icon-glyph" aria-hidden>
-                        ↩
-                      </span>
-                      <span>Sair</span>
-                    </button>
-                  </div>
-                </div>
-              </header>
+                      <label className="form-row compact">
+                        <span>Auditoria (Ano)</span>
+                        <select
+                          value={auditoriaId ?? ''}
+                          onChange={(e) => {
+                            const value = e.target.value ? Number(e.target.value) : null;
+                            setAuditoriaId(value);
+                            if (value) {
+                              localStorage.setItem('auditoria_id', String(value));
+                            } else {
+                              localStorage.removeItem('auditoria_id');
+                            }
+                          }}
+                        >
+                          <option value="">Selecione</option>
+                          {auditorias.map((a) => (
+                            <option key={a.id} value={a.id}>
+                              Auditoria {a.year}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
 
-              <main className="page-container">{rotas}</main>
+                    <div className="user-block">
+                      <span>{usuario ? `${usuario.nome} (${usuario.role})` : 'Usuário'}</span>
+                      <button type="button" className="btn-secondary btn-icon" onClick={onLogout}>
+                        <span className="btn-icon-glyph" aria-hidden>
+                          ↩
+                        </span>
+                        <span>Sair</span>
+                      </button>
+                    </div>
+                  </div>
+                </header>
+
+                <main className="page-container">{rotas}</main>
+              </div>
             </div>
-          </div>
-        ) : (
-          <main className="page-container">{rotas}</main>
-        )}
-      </div>
+          ) : (
+            <main className="page-container">{rotas}</main>
+          )}
+        </div>
+      </AppErrorBoundary>
     </BrowserRouter>
   );
 }

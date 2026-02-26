@@ -35,8 +35,8 @@ const CERTIFICACOES_FIXAS = [
   { codigo: 'CARBONO', label: 'Carbono' },
 ] as const;
 
-const normalizarTexto = (valor: string) =>
-  valor
+const normalizarTexto = (valor?: string | null) =>
+  String(valor || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
@@ -109,7 +109,10 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
     const meta = CERTIFICACOES_FIXAS.find((item) => item.codigo === codigo);
     const labelNormalizado = normalizarTexto(meta?.label || codigo);
     return (
-      lista.find((programa) => programa.codigo.toUpperCase() === codigo.toUpperCase()) ||
+      lista.find(
+        (programa) =>
+          String(programa.codigo || '').toUpperCase() === String(codigo || '').toUpperCase()
+      ) ||
       lista.find((programa) => normalizarTexto(programa.nome) === labelNormalizado)
     );
   };
@@ -210,7 +213,7 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
         const selecionado = listaProgramas.find((programa) => programa.id === programaId);
         if (selecionado) {
           const fixo = CERTIFICACOES_FIXAS.find((item) => {
-            if (item.codigo === selecionado.codigo.toUpperCase()) return true;
+            if (item.codigo === String(selecionado.codigo || '').toUpperCase()) return true;
             return normalizarTexto(item.label) === normalizarTexto(selecionado.nome);
           });
           if (fixo) {
