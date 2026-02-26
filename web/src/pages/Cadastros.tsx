@@ -109,6 +109,10 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
       }),
     [tipos, criterioMap, indicadorMap, novoTipo.criterio_id, novoTipo.indicador_id]
   );
+  const principioSelecionadoValido = useMemo(
+    () => principios.some((item) => item.id === Number(novoCriterio.principio_id)),
+    [principios, novoCriterio.principio_id]
+  );
 
   const buscarProgramaPorCertificacao = (codigo: string, lista: ProgramaCertificacao[]) => {
     const meta = CERTIFICACOES_FIXAS.find((item) => item.codigo === codigo);
@@ -338,14 +342,26 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
       setErro('Conclua a Etapa 1 (Auditoria e Certificação) antes de cadastrar estrutura.');
       return;
     }
+    if (!novoCriterio.titulo.trim()) {
+      setErro('Informe o título do critério.');
+      return;
+    }
+    if (!principioSelecionadoValido) {
+      const primeiroPrincipioId = principios[0]?.id || 0;
+      if (primeiroPrincipioId) {
+        setNovoCriterio((prev) => ({ ...prev, principio_id: primeiroPrincipioId }));
+      }
+      setErro('Selecione um princípio válido para cadastrar o critério.');
+      return;
+    }
     setErro('');
     try {
       await api.post('/criterios', {
         programa_id: programaId,
         principio_id: Number(novoCriterio.principio_id),
-        codigo: novoCriterio.codigo || null,
-        titulo: novoCriterio.titulo,
-        descricao: novoCriterio.descricao || null,
+        codigo: novoCriterio.codigo.trim() || null,
+        titulo: novoCriterio.titulo.trim(),
+        descricao: novoCriterio.descricao.trim() || null,
       });
       setNovoCriterio((prev) => ({ ...prev, codigo: '', titulo: '', descricao: '' }));
       await carregarEstrutura();
@@ -735,7 +751,10 @@ export default function Cadastros({ programaId, auditoriaId, selecionarContextoR
                 value={novoCriterio.descricao}
                 onChange={(e) => setNovoCriterio((c) => ({ ...c, descricao: e.target.value }))}
               />
-              <button type="submit" disabled={!programaId || principios.length === 0}>
+              <button
+                type="submit"
+                disabled={!programaId || principios.length === 0 || !principioSelecionadoValido}
+              >
                 Adicionar Critério
               </button>
             </form>
