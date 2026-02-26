@@ -12,29 +12,59 @@ type AppErrorBoundaryProps = {
 type AppErrorBoundaryState = {
   hasError: boolean;
   message: string;
+  diagnostic: string;
+  showDiagnostic: boolean;
 };
 
 class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, AppErrorBoundaryState> {
   constructor(props: AppErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, message: '' };
+    this.state = { hasError: false, message: '', diagnostic: '', showDiagnostic: false };
   }
 
   static getDerivedStateFromError(error: Error): AppErrorBoundaryState {
     return {
       hasError: true,
       message: error?.message || 'Erro inesperado ao renderizar a interface.',
+      diagnostic: '',
+      showDiagnostic: false,
     };
   }
 
-  componentDidCatch(error: Error) {
-    console.error('Erro de renderização na aplicação:', error);
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    const diagnostic = [
+      `Mensagem: ${error?.message || '-'}`,
+      `Rota: ${window.location.pathname}${window.location.search}`,
+      `Horario: ${new Date().toISOString()}`,
+      `UserAgent: ${navigator.userAgent}`,
+      '--- STACK ---',
+      error?.stack || '-',
+      '--- COMPONENT STACK ---',
+      info?.componentStack || '-',
+    ].join('\n');
+
+    this.setState({ diagnostic });
+    console.error('Erro de renderização na aplicação:', error, info);
   }
 
   private limparSessaoERedirecionar = () => {
-    this.setState({ hasError: false, message: '' });
+    this.setState({ hasError: false, message: '', diagnostic: '', showDiagnostic: false });
     this.props.onResetSession();
     window.location.href = '/login';
+  };
+
+  private alternarDiagnostico = () => {
+    this.setState((prev) => ({ ...prev, showDiagnostic: !prev.showDiagnostic }));
+  };
+
+  private copiarDiagnostico = async () => {
+    if (!this.state.diagnostic) return;
+    try {
+      await navigator.clipboard.writeText(this.state.diagnostic);
+      alert('Diagnóstico copiado.');
+    } catch {
+      alert('Não foi possível copiar automaticamente. Selecione e copie manualmente.');
+    }
   };
 
   render() {
@@ -54,7 +84,22 @@ class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, AppErrorBo
               <button type="button" className="btn-secondary" onClick={() => window.location.reload()}>
                 Recarregar página
               </button>
+              <button type="button" className="btn-secondary" onClick={this.alternarDiagnostico}>
+                {this.state.showDiagnostic ? 'Ocultar diagnóstico' : 'Mostrar diagnóstico'}
+              </button>
+              {this.state.showDiagnostic && (
+                <button type="button" className="btn-secondary" onClick={this.copiarDiagnostico}>
+                  Copiar diagnóstico
+                </button>
+              )}
             </div>
+
+            {this.state.showDiagnostic && (
+              <label className="form-row">
+                <span>Diagnóstico técnico</span>
+                <textarea value={this.state.diagnostic || 'Sem detalhes adicionais.'} rows={12} readOnly />
+              </label>
+            )}
           </div>
         </main>
       );
@@ -119,8 +164,7 @@ export default function App() {
       const existeSelecionada = auditoriaId && data.some((a) => a.id === auditoriaId);
       const auditoriaPreferida =
         typeof anoPreferido === 'number' ? data.find((a) => a.year === anoPreferido) : undefined;
-      const idAlvo =
-        auditoriaPreferida?.id || (existeSelecionada ? (auditoriaId as number) : data[0].id);
+      const idAlvo = auditoriaPreferida?.id || (existeSelecionada ? (auditoriaId as number) : data[0].id);
       if (idAlvo !== auditoriaId) {
         setAuditoriaId(idAlvo);
         localStorage.setItem('auditoria_id', String(idAlvo));
@@ -213,11 +257,7 @@ export default function App() {
                 <div className="brand">
                   <div className="brand-top">
                     {configuracao?.logo_preview_url && (
-                      <img
-                        src={configuracao.logo_preview_url}
-                        alt="Logo da empresa"
-                        className="brand-logo"
-                      />
+                      <img src={configuracao.logo_preview_url} alt="Logo da empresa" className="brand-logo" />
                     )}
                     <strong>{configuracao?.nome_empresa || 'Sistema de Certificações'}</strong>
                   </div>
