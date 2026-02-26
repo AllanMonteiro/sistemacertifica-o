@@ -147,7 +147,7 @@ class CriterioBase(BaseModel):
     programa_id: int
     principio_id: int
     codigo: str | None = Field(default=None, max_length=50)
-    titulo: str = Field(min_length=2, max_length=255)
+    titulo: str = Field(min_length=2, max_length=4000)
     descricao: str | None = None
 
 
@@ -159,7 +159,7 @@ class CriterioUpdate(BaseModel):
     programa_id: int | None = None
     principio_id: int | None = None
     codigo: str | None = Field(default=None, max_length=50)
-    titulo: str | None = Field(default=None, min_length=2, max_length=255)
+    titulo: str | None = Field(default=None, min_length=2, max_length=4000)
     descricao: str | None = None
 
 

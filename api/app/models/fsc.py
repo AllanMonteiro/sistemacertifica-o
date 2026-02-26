@@ -108,7 +108,7 @@ class Criterio(Base):
     programa_id: Mapped[int] = mapped_column(ForeignKey('programas_certificacao.id', ondelete='RESTRICT'), nullable=False, index=True)
     principio_id: Mapped[int] = mapped_column(ForeignKey('principios.id', ondelete='CASCADE'), nullable=False, index=True)
     codigo: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    titulo: Mapped[str] = mapped_column(String(255), nullable=False)
+    titulo: Mapped[str] = mapped_column(Text, nullable=False)
     descricao: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     programa = relationship('ProgramaCertificacao', back_populates='criterios')
