@@ -1,7 +1,7 @@
 """Aumenta tamanho do titulo de criterio
 
 Revision ID: 0012_criterio_titulo_texto
-Revises: 0011_evid_nao_conforme
+Revises: 0011_evid_nao_conf
 Create Date: 2026-02-26 16:35:00.000000
 """
 
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "0012_criterio_titulo_texto"
-down_revision = "0011_evid_nao_conforme"
+down_revision = "0011_evid_nao_conf"
 branch_labels = None
 depends_on = None
 
@@ -34,4 +34,3 @@ def downgrade() -> None:
         type_=sa.String(length=255),
         existing_nullable=False,
     )
-
