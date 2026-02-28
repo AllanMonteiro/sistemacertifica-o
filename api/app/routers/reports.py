@@ -1,7 +1,7 @@
 ﻿from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import case, extract, func, or_, select
+from sqlalchemy import case, extract, func, select
 from sqlalchemy.orm import Session
 
 from app.core.rbac import require_roles
@@ -13,6 +13,7 @@ from app.models.fsc import (
     Demanda,
     Evidencia,
     Indicador,
+    PrioridadeEnum,
     ProgramaCertificacao,
     Principio,
     StatusAndamentoEnum,
@@ -37,6 +38,12 @@ STATUS_CRONOGRAMA = (
     StatusConformidadeEnum.nc_maior,
     StatusConformidadeEnum.oportunidade_melhoria,
 )
+
+PRIORIDADE_PADRAO_CRONOGRAMA = {
+    StatusConformidadeEnum.nc_maior: PrioridadeEnum.critica,
+    StatusConformidadeEnum.nc_menor: PrioridadeEnum.alta,
+    StatusConformidadeEnum.oportunidade_melhoria: PrioridadeEnum.media,
+}
 
 NOMES_MESES = {
     1: 'Janeiro',
@@ -283,8 +290,11 @@ def cronograma_nc(
             Demanda.prioridade.label('prioridade'),
             Demanda.status_andamento.label('status_andamento'),
             AvaliacaoIndicador.status_conformidade.label('status_conformidade'),
-            func.coalesce(Demanda.start_date, Demanda.due_date, AuditoriaAno.data_inicio).label('data_inicio'),
-            func.coalesce(Demanda.due_date, Demanda.start_date, AuditoriaAno.data_fim).label('data_fim'),
+            Demanda.start_date.label('data_inicio_demanda'),
+            Demanda.due_date.label('data_fim_demanda'),
+            AuditoriaAno.data_inicio.label('data_inicio_auditoria'),
+            AuditoriaAno.data_fim.label('data_fim_auditoria'),
+            AuditoriaAno.year.label('ano_auditoria'),
         )
         .join(AvaliacaoIndicador, AvaliacaoIndicador.id == Demanda.avaliacao_id)
         .join(AuditoriaAno, AuditoriaAno.id == AvaliacaoIndicador.auditoria_ano_id)
@@ -294,7 +304,6 @@ def cronograma_nc(
             Demanda.programa_id == programa_id,
             AvaliacaoIndicador.auditoria_ano_id == auditoria_id,
             AvaliacaoIndicador.status_conformidade.in_(STATUS_CRONOGRAMA),
-            or_(Demanda.start_date.is_not(None), Demanda.due_date.is_not(None)),
         )
         .order_by(
             Demanda.start_date.asc().nulls_last(),
@@ -309,10 +318,12 @@ def cronograma_nc(
     rows = db.execute(query).all()
     resultado: list[CronogramaGanttItem] = []
     for row in rows:
-        data_inicio = row.data_inicio
-        data_fim = row.data_fim
-        if data_inicio is None or data_fim is None:
-            continue
+        data_inicio = row.data_inicio_demanda or row.data_fim_demanda or row.data_inicio_auditoria
+        data_fim = row.data_fim_demanda or row.data_inicio_demanda or row.data_fim_auditoria
+        if data_inicio is None:
+            data_inicio = date(int(row.ano_auditoria), 1, 1)
+        if data_fim is None:
+            data_fim = date(int(row.ano_auditoria), 12, 31)
         if data_fim < data_inicio:
             data_inicio, data_fim = data_fim, data_inicio
         resultado.append(
@@ -331,6 +342,57 @@ def cronograma_nc(
                 data_fim=data_fim,
             )
         )
+
+    # Inclui NC/OM sem demanda para evidenciar pendências no cronograma.
+    avaliacoes_sem_demanda = db.execute(
+        select(
+            AvaliacaoIndicador.id.label('avaliacao_id'),
+            AuditoriaAno.id.label('auditoria_id'),
+            AuditoriaAno.year.label('ano_auditoria'),
+            AuditoriaAno.data_inicio.label('data_inicio_auditoria'),
+            AuditoriaAno.data_fim.label('data_fim_auditoria'),
+            AvaliacaoIndicador.programa_id.label('programa_id'),
+            Indicador.titulo.label('indicador_titulo'),
+            AvaliacaoIndicador.status_conformidade.label('status_conformidade'),
+        )
+        .join(AuditoriaAno, AuditoriaAno.id == AvaliacaoIndicador.auditoria_ano_id)
+        .join(Indicador, Indicador.id == AvaliacaoIndicador.indicator_id)
+        .where(
+            AvaliacaoIndicador.programa_id == programa_id,
+            AvaliacaoIndicador.auditoria_ano_id == auditoria_id,
+            AvaliacaoIndicador.status_conformidade.in_(STATUS_CRONOGRAMA),
+            ~select(Demanda.id).where(Demanda.avaliacao_id == AvaliacaoIndicador.id).exists(),
+        )
+        .order_by(AvaliacaoIndicador.id.desc())
+    ).all()
+
+    for row in avaliacoes_sem_demanda:
+        data_inicio = row.data_inicio_auditoria or date(int(row.ano_auditoria), 1, 1)
+        data_fim = row.data_fim_auditoria or date(int(row.ano_auditoria), 12, 31)
+        if data_fim < data_inicio:
+            data_inicio, data_fim = data_fim, data_inicio
+
+        status_conformidade = row.status_conformidade
+        prioridade_padrao = PRIORIDADE_PADRAO_CRONOGRAMA.get(status_conformidade, PrioridadeEnum.media)
+        rotulo_status = STATUS_CONFORMIDADE_LABELS.get(status_conformidade, 'Não Conformidade')
+        resultado.append(
+            CronogramaGanttItem(
+                demanda_id=-int(row.avaliacao_id),
+                avaliacao_id=int(row.avaliacao_id),
+                auditoria_id=int(row.auditoria_id),
+                programa_id=int(row.programa_id),
+                indicador_titulo=str(row.indicador_titulo),
+                titulo=f'Sem demanda cadastrada ({rotulo_status})',
+                responsavel_nome=None,
+                prioridade=prioridade_padrao,
+                status_andamento=StatusAndamentoEnum.aberta,
+                status_conformidade=status_conformidade,
+                data_inicio=data_inicio,
+                data_fim=data_fim,
+            )
+        )
+
+    resultado.sort(key=lambda item: (item.data_inicio, item.data_fim, item.demanda_id))
     return resultado
 
 

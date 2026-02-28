@@ -296,7 +296,10 @@ export default function Cronograma({ programaId, auditoriaId }: Props) {
 
       <div className="card">
         {itens.length === 0 || !escala || !faixaVisivel ? (
-          <p>Nao ha demandas com datas para NC Maior, NC Menor ou Oportunidade de Melhoria.</p>
+          <p>
+            Nao ha itens de cronograma para esta auditoria. Cadastre avaliacoes em NC Maior/NC Menor/Oportunidade de
+            Melhoria e vincule demandas para visualizar o Gantt.
+          </p>
         ) : (
           <>
             <div className="gantt-header">
