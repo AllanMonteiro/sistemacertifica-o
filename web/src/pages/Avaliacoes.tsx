@@ -30,6 +30,7 @@ const STATUS_OPTIONS: StatusConformidade[] = [
   'oportunidade_melhoria',
   'nao_se_aplica',
 ];
+const STATUS_EXIGE_JUSTIFICATIVA: StatusConformidade[] = ['nc_menor', 'nc_maior', 'nao_se_aplica'];
 
 export default function Avaliacoes({ programaId, auditoriaId }: Props) {
   const navigate = useNavigate();
@@ -138,6 +139,14 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
     if (!auditoriaId || !programaId) return;
     if (!novoIndicadorId) {
       setErro('Não há indicador disponível para criar avaliação nesta auditoria.');
+      return;
+    }
+    if (STATUS_EXIGE_JUSTIFICATIVA.includes(novoStatus) && !novaObs.trim()) {
+      setErro(
+        novoStatus === 'nao_se_aplica'
+          ? 'Para status Não se Aplica, informe justificativa/observações.'
+          : 'Para NC Menor ou NC Maior, informe justificativa/observações antes de criar a avaliação.'
+      );
       return;
     }
     setErro('');
