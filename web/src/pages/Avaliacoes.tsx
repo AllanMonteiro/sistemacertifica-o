@@ -114,6 +114,7 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
     return indicadoresDisponiveis.filter((item) => item.criterio_id === novoCriterioId);
   }, [indicadoresDisponiveis, novoCriterioId]);
   const semIndicadoresDisponiveis = indicadoresDisponiveis.length === 0;
+  const semIndicadoresCadastrados = indicadores.length === 0;
 
   const filtradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -282,7 +283,11 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
           </button>
         </form>
         {semIndicadoresDisponiveis && (
-          <p className="muted-text">Todos os indicadores deste programa já possuem avaliação para esta auditoria.</p>
+          <p className="muted-text">
+            {semIndicadoresCadastrados
+              ? 'Não há indicadores cadastrados para este programa. Cadastre em Cadastros > Etapa 4 - Indicadores.'
+              : 'Todos os indicadores deste programa já possuem avaliação para esta auditoria.'}
+          </p>
         )}
       </div>
 
