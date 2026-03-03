@@ -133,6 +133,31 @@ Usuário ADMIN criado automaticamente no startup:
   - `/api/reports/resumo-conformidade-por-certificacao?year=&programa_id=`
   - `/api/reports/cronograma-nc?programa_id=&auditoria_id=&incluir_concluidas=`
 
+### Fluxo mínimo para alimentar o cronograma
+
+1. Criar `Indicador` no cadastro base.
+2. Criar `Avaliação` em `nc_menor`, `nc_maior` ou `oportunidade_melhoria`.
+3. Informar `demanda_inicial` no `POST /api/avaliacoes` para já gravar a demanda com `start_date` e `due_date`.
+
+Exemplo de payload:
+
+```json
+{
+  "indicator_id": 10,
+  "auditoria_ano_id": 3,
+  "status_conformidade": "nc_menor",
+  "observacoes": "",
+  "demanda_inicial": {
+    "titulo": "Regularizar documento pendente",
+    "descricao": "Ajustar evidência documental",
+    "start_date": "2026-03-01",
+    "due_date": "2026-03-25",
+    "status_andamento": "aberta",
+    "prioridade": "alta"
+  }
+}
+```
+
 ## Observações
 
 - O bucket S3 `evidencias` é criado automaticamente no startup da API.

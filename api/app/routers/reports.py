@@ -1,7 +1,7 @@
 ﻿from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import case, extract, func, select
+from sqlalchemy import and_, case, extract, func, select
 from sqlalchemy.orm import Session
 
 from app.core.rbac import require_roles
@@ -216,7 +216,7 @@ def resumo_conformidade_por_certificacao(
         select(
             ProgramaCertificacao.id.label('programa_id'),
             ProgramaCertificacao.nome.label('programa_nome'),
-            AuditoriaAno.year.label('year'),
+            func.coalesce(AuditoriaAno.year, year).label('year'),
             func.sum(case((AvaliacaoIndicador.status_conformidade == StatusConformidadeEnum.conforme, 1), else_=0)).label('conformes'),
             func.sum(
                 case(
@@ -237,9 +237,14 @@ def resumo_conformidade_por_certificacao(
             ).label('nao_se_aplica'),
             func.count(AvaliacaoIndicador.id).label('total_avaliacoes'),
         )
-        .join(AuditoriaAno, AuditoriaAno.programa_id == ProgramaCertificacao.id)
-        .join(AvaliacaoIndicador, AvaliacaoIndicador.auditoria_ano_id == AuditoriaAno.id)
-        .where(AuditoriaAno.year == year)
+        .outerjoin(
+            AuditoriaAno,
+            and_(
+                AuditoriaAno.programa_id == ProgramaCertificacao.id,
+                AuditoriaAno.year == year,
+            ),
+        )
+        .outerjoin(AvaliacaoIndicador, AvaliacaoIndicador.auditoria_ano_id == AuditoriaAno.id)
         .group_by(ProgramaCertificacao.id, ProgramaCertificacao.nome, AuditoriaAno.year)
         .order_by(ProgramaCertificacao.nome)
     )
@@ -252,7 +257,7 @@ def resumo_conformidade_por_certificacao(
         ResumoConformidadeCertificacaoItem(
             programa_id=int(row.programa_id),
             programa_nome=str(row.programa_nome),
-            year=int(row.year),
+            year=int(row.year or year),
             conformes=int(row.conformes or 0),
             nao_conformes=int(row.nao_conformes or 0),
             oportunidades_melhoria=int(row.oportunidades_melhoria or 0),

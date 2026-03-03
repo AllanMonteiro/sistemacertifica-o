@@ -1,5 +1,5 @@
 ﻿from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.rbac import require_roles
@@ -20,7 +20,8 @@ router = APIRouter(prefix='/api/auth', tags=['Autenticação'])
 
 @router.post('/login', response_model=TokenResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
-    user = authenticate_user(db, payload.email, payload.senha)
+    email = payload.email.strip().lower()
+    user = authenticate_user(db, email, payload.senha)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Email ou senha inválidos.')
 
@@ -34,13 +35,14 @@ def register(
     db: Session = Depends(get_db),
     _: User = Depends(require_roles(RoleEnum.ADMIN)),
 ) -> UserOut:
-    existing = db.scalar(select(User).where(User.email == payload.email))
+    email = payload.email.strip().lower()
+    existing = db.scalar(select(User).where(func.lower(User.email) == email))
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Já existe usuário com este email.')
 
     new_user = User(
-        nome=payload.nome,
-        email=payload.email,
+        nome=payload.nome.strip(),
+        email=email,
         role=payload.role,
         password_hash=hash_password(payload.senha),
     )

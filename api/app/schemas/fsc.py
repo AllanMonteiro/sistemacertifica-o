@@ -240,8 +240,19 @@ class AvaliacaoBase(BaseModel):
     observacoes: str | None = None
 
 
+class DemandaInicialAvaliacao(BaseModel):
+    titulo: str = Field(min_length=3, max_length=255)
+    padrao: str | None = Field(default=None, max_length=255)
+    descricao: str | None = None
+    responsavel_id: int | None = None
+    start_date: date | None = None
+    due_date: date | None = None
+    status_andamento: StatusAndamentoEnum = StatusAndamentoEnum.aberta
+    prioridade: PrioridadeEnum = PrioridadeEnum.media
+
+
 class AvaliacaoCreate(AvaliacaoBase):
-    pass
+    demanda_inicial: DemandaInicialAvaliacao | None = None
 
 
 class AvaliacaoUpdate(BaseModel):

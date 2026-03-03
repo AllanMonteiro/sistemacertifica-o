@@ -175,6 +175,7 @@ def _validar_regras_avaliacao(
     status_conformidade: StatusConformidadeEnum,
     observacoes: str | None,
     avaliacao_id: int | None = None,
+    tem_demanda_ativa: bool = False,
 ) -> None:
     obs_preenchida = _texto_preenchido(observacoes)
 
@@ -185,6 +186,8 @@ def _validar_regras_avaliacao(
         )
 
     if status_conformidade in (StatusConformidadeEnum.nc_menor, StatusConformidadeEnum.nc_maior) and not obs_preenchida:
+        if tem_demanda_ativa:
+            return
         if not avaliacao_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -1278,7 +1281,18 @@ def criar_avaliacao(
     indicador = _buscar_indicador(db, payload.indicator_id)
     auditoria = _buscar_auditoria(db, payload.auditoria_ano_id)
     _validar_mesmo_programa(indicador.programa_id, auditoria.programa_id, 'criação de avaliação')
-    _validar_regras_avaliacao(db, payload.status_conformidade, payload.observacoes, None)
+
+    demanda_inicial = payload.demanda_inicial
+    tem_demanda_ativa_inicial = bool(
+        demanda_inicial and demanda_inicial.status_andamento in STATUS_DEMANDA_ATIVA
+    )
+    _validar_regras_avaliacao(
+        db,
+        payload.status_conformidade,
+        payload.observacoes,
+        None,
+        tem_demanda_ativa=tem_demanda_ativa_inicial,
+    )
 
     existente = db.scalar(
         select(AvaliacaoIndicador).where(
@@ -1292,8 +1306,21 @@ def criar_avaliacao(
             detail='Já existe avaliação deste indicador para esta Auditoria.',
         )
 
+    start_date_demanda: date | None = None
+    due_date_demanda: date | None = None
+    if demanda_inicial:
+        if demanda_inicial.responsavel_id is not None:
+            _buscar_usuario(db, demanda_inicial.responsavel_id)
+        start_date_demanda, due_date_demanda = _normalizar_datas_demanda(
+            demanda_inicial.start_date,
+            demanda_inicial.due_date,
+        )
+        _validar_datas_demanda(start_date_demanda, due_date_demanda)
+        _validar_exigencia_cronograma(payload.status_conformidade, start_date_demanda, due_date_demanda)
+
+    payload_data = payload.model_dump(exclude={'demanda_inicial'})
     avaliacao = AvaliacaoIndicador(
-        **payload.model_dump(),
+        **payload_data,
         programa_id=auditoria.programa_id,
         assessed_at=datetime.now(UTC),
     )
@@ -1309,6 +1336,33 @@ def criar_avaliacao(
         programa_id=auditoria.programa_id,
         auditoria_ano_id=auditoria.id,
     )
+
+    if demanda_inicial:
+        demanda = Demanda(
+            avaliacao_id=avaliacao.id,
+            titulo=demanda_inicial.titulo,
+            padrao=demanda_inicial.padrao,
+            descricao=demanda_inicial.descricao,
+            responsavel_id=demanda_inicial.responsavel_id,
+            start_date=start_date_demanda,
+            due_date=due_date_demanda,
+            status_andamento=demanda_inicial.status_andamento,
+            prioridade=demanda_inicial.prioridade,
+            programa_id=auditoria.programa_id,
+        )
+        db.add(demanda)
+        db.flush()
+        registrar_log(
+            db,
+            entidade='demanda',
+            entidade_id=demanda.id,
+            acao=AcaoAuditEnum.CREATE,
+            created_by=current_user.id,
+            new_value=_dump_model(demanda),
+            programa_id=auditoria.programa_id,
+            auditoria_ano_id=auditoria.id,
+        )
+
     db.commit()
     db.refresh(avaliacao)
     return avaliacao
@@ -2930,13 +2984,14 @@ def criar_responsavel(
     db: Session = Depends(get_db),
     _: User = Depends(require_roles(RoleEnum.ADMIN, RoleEnum.GESTOR)),
 ) -> UserOut:
-    existente = db.scalar(select(User).where(func.lower(User.email) == payload.email.lower()))
+    email_normalizado = payload.email.strip().lower()
+    existente = db.scalar(select(User).where(func.lower(User.email) == email_normalizado))
     if existente:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Já existe usuário com este email.')
 
     responsavel = User(
         nome=payload.nome.strip(),
-        email=payload.email.strip().lower(),
+        email=email_normalizado,
         role=RoleEnum.RESPONSAVEL,
         password_hash=hash_password(payload.senha),
     )

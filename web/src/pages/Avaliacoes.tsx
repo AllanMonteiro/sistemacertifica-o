@@ -30,7 +30,8 @@ const STATUS_OPTIONS: StatusConformidade[] = [
   'oportunidade_melhoria',
   'nao_se_aplica',
 ];
-const STATUS_EXIGE_JUSTIFICATIVA: StatusConformidade[] = ['nc_menor', 'nc_maior', 'nao_se_aplica'];
+const STATUS_EXIGE_JUSTIFICATIVA: StatusConformidade[] = ['nao_se_aplica'];
+const STATUS_CRONOGRAMA: StatusConformidade[] = ['nc_menor', 'nc_maior', 'oportunidade_melhoria'];
 
 export default function Avaliacoes({ programaId, auditoriaId }: Props) {
   const navigate = useNavigate();
@@ -47,6 +48,10 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
   const [novoIndicadorId, setNovoIndicadorId] = useState<number>(0);
   const [novoStatus, setNovoStatus] = useState<StatusConformidade>('conforme');
   const [novaObs, setNovaObs] = useState('');
+  const [novaDemandaTitulo, setNovaDemandaTitulo] = useState('');
+  const [novaDemandaDescricao, setNovaDemandaDescricao] = useState('');
+  const [novaDemandaInicio, setNovaDemandaInicio] = useState('');
+  const [novaDemandaFim, setNovaDemandaFim] = useState('');
   const [avaliacaoEdicao, setAvaliacaoEdicao] = useState<Avaliacao | null>(null);
   const [edicaoStatus, setEdicaoStatus] = useState<StatusConformidade>('conforme');
   const [edicaoObs, setEdicaoObs] = useState('');
@@ -116,6 +121,7 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
   }, [indicadoresDisponiveis, novoCriterioId]);
   const semIndicadoresDisponiveis = indicadoresDisponiveis.length === 0;
   const semIndicadoresCadastrados = indicadores.length === 0;
+  const statusUsaCronograma = STATUS_CRONOGRAMA.includes(novoStatus);
 
   const filtradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -141,7 +147,13 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
       setErro('Não há indicador disponível para criar avaliação nesta auditoria.');
       return;
     }
-    if (STATUS_EXIGE_JUSTIFICATIVA.includes(novoStatus) && !novaObs.trim()) {
+    const justificativaPreenchida = Boolean(novaObs.trim());
+    const demandaPreenchidaParcial = Boolean(
+      novaDemandaTitulo.trim() || novaDemandaDescricao.trim() || novaDemandaInicio || novaDemandaFim
+    );
+    const demandaCompleta = Boolean(novaDemandaTitulo.trim() && novaDemandaInicio && novaDemandaFim);
+
+    if (STATUS_EXIGE_JUSTIFICATIVA.includes(novoStatus) && !justificativaPreenchida) {
       setErro(
         novoStatus === 'nao_se_aplica'
           ? 'Para status Não se Aplica, informe justificativa/observações.'
@@ -149,18 +161,52 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
       );
       return;
     }
+
+    if ((novoStatus === 'nc_menor' || novoStatus === 'nc_maior') && !justificativaPreenchida && !demandaCompleta) {
+      setErro('Para NC Menor/NC Maior, informe justificativa ou preencha demanda inicial com título e datas.');
+      return;
+    }
+
+    if (statusUsaCronograma && demandaPreenchidaParcial && !demandaCompleta) {
+      setErro('Para criar demanda inicial, preencha Título, Data Início e Data Fim.');
+      return;
+    }
+    if (demandaCompleta && novaDemandaFim < novaDemandaInicio) {
+      setErro('A Data Fim da demanda inicial não pode ser anterior à Data Início.');
+      return;
+    }
+
     setErro('');
     setMensagem('');
     try {
-      await api.post('/avaliacoes', {
+      const payload: any = {
         indicator_id: Number(novoIndicadorId),
         auditoria_ano_id: auditoriaId,
         status_conformidade: novoStatus,
         observacoes: novaObs || null,
-      });
+      };
+      if (statusUsaCronograma && demandaCompleta) {
+        payload.demanda_inicial = {
+          titulo: novaDemandaTitulo.trim(),
+          descricao: novaDemandaDescricao.trim() || null,
+          start_date: novaDemandaInicio,
+          due_date: novaDemandaFim,
+          status_andamento: 'aberta',
+          prioridade: novoStatus === 'nc_maior' ? 'critica' : novoStatus === 'nc_menor' ? 'alta' : 'media',
+        };
+      }
+      await api.post('/avaliacoes', payload);
       setNovaObs('');
+      setNovaDemandaTitulo('');
+      setNovaDemandaDescricao('');
+      setNovaDemandaInicio('');
+      setNovaDemandaFim('');
       await carregar();
-      setMensagem('Avaliação criada com sucesso.');
+      setMensagem(
+        statusUsaCronograma && demandaCompleta
+          ? 'Avaliação criada com demanda inicial para o cronograma.'
+          : 'Avaliação criada com sucesso.'
+      );
     } catch (err: any) {
       setErro(formatApiError(err, 'Falha ao criar avaliação.'));
     }
@@ -286,6 +332,37 @@ export default function Avaliacoes({ programaId, auditoriaId }: Props) {
             disabled={semIndicadoresDisponiveis}
             onChange={(e) => setNovaObs(e.target.value)}
           />
+
+          {statusUsaCronograma && (
+            <>
+              <input
+                style={{ gridColumn: 'span 2' }}
+                placeholder="Título da demanda inicial (opcional, mas recomendado)"
+                value={novaDemandaTitulo}
+                disabled={semIndicadoresDisponiveis}
+                onChange={(e) => setNovaDemandaTitulo(e.target.value)}
+              />
+              <input
+                type="date"
+                value={novaDemandaInicio}
+                disabled={semIndicadoresDisponiveis}
+                onChange={(e) => setNovaDemandaInicio(e.target.value)}
+              />
+              <input
+                type="date"
+                value={novaDemandaFim}
+                disabled={semIndicadoresDisponiveis}
+                onChange={(e) => setNovaDemandaFim(e.target.value)}
+              />
+              <input
+                style={{ gridColumn: '1 / -1' }}
+                placeholder="Descrição da demanda inicial (opcional)"
+                value={novaDemandaDescricao}
+                disabled={semIndicadoresDisponiveis}
+                onChange={(e) => setNovaDemandaDescricao(e.target.value)}
+              />
+            </>
+          )}
 
           <button type="submit" disabled={semIndicadoresDisponiveis}>
             Criar Avaliação

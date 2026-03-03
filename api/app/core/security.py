@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -31,7 +31,8 @@ def create_access_token(user_id: int) -> str:
 
 
 def authenticate_user(db: Session, email: str, password: str) -> User | None:
-    user = db.scalar(select(User).where(User.email == email))
+    email_normalizado = email.strip().lower()
+    user = db.scalar(select(User).where(func.lower(User.email) == email_normalizado))
     if not user:
         return None
     if not verify_password(password, user.password_hash):
